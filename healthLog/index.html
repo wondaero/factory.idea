@@ -153,20 +153,10 @@
         .calendar-weekdays span:first-child { color: #ff3b30; }
         .calendar-weekdays span:last-child { color: #007aff; }
 
-        .calendar-swipe-container {
-            position: relative;
-            overflow: hidden;
-        }
-        .calendar-days-wrapper {
-            display: flex;
-            transition: transform 0.3s ease;
-        }
         .calendar-days {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
             gap: 4px;
-            min-width: 100%;
-            flex-shrink: 0;
         }
         .calendar-day {
             aspect-ratio: 1;
@@ -733,13 +723,7 @@
                         <div class="calendar-weekdays">
                             <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
                         </div>
-                        <div class="calendar-swipe-container">
-                            <div class="calendar-days-wrapper" id="calendarWrapper">
-                                <div class="calendar-days" id="calendarDaysPrev"></div>
-                                <div class="calendar-days" id="calendarDays"></div>
-                                <div class="calendar-days" id="calendarDaysNext"></div>
-                            </div>
-                        </div>
+                        <div class="calendar-days" id="calendarDays"></div>
                     </div>
 
                     <div class="day-detail hidden" id="dayDetail">
@@ -958,50 +942,32 @@
         calendarViewBtn.addEventListener('click', () => setViewMode('calendar'));
         listViewBtn.addEventListener('click', () => setViewMode('list'));
 
-        // Calendar Swipe
+        // Calendar Touch Gesture
         const calendarContainer = document.getElementById('calendarContainer');
-        const calendarWrapper = document.getElementById('calendarWrapper');
-        let touchStartX = 0, touchEndX = 0, isSwiping = false;
+        let touchStartX = 0, touchEndX = 0;
 
         calendarContainer.addEventListener('touchstart', e => {
             touchStartX = e.touches[0].clientX;
-            isSwiping = true;
-            calendarWrapper.style.transition = 'none';
+            touchEndX = touchStartX;
         }, { passive: true });
 
         calendarContainer.addEventListener('touchmove', e => {
-            if (!isSwiping) return;
             touchEndX = e.touches[0].clientX;
-            const diff = touchEndX - touchStartX;
-            const containerWidth = calendarContainer.offsetWidth;
-            calendarWrapper.style.transform = `translateX(calc(-100% + ${diff}px))`;
         }, { passive: true });
 
         calendarContainer.addEventListener('touchend', () => {
-            if (!isSwiping) return;
-            isSwiping = false;
-            calendarWrapper.style.transition = 'transform 0.3s ease';
             const diff = touchEndX - touchStartX;
-
-            if (diff > 80) {
-                calendarWrapper.style.transform = 'translateX(0)';
-                setTimeout(() => {
-                    calendarMonth--;
-                    if (calendarMonth < 0) { calendarMonth = 11; calendarYear--; }
-                    renderCalendar();
-                }, 300);
-            } else if (diff < -80) {
-                calendarWrapper.style.transform = 'translateX(-200%)';
-                setTimeout(() => {
-                    calendarMonth++;
-                    if (calendarMonth > 11) { calendarMonth = 0; calendarYear++; }
-                    renderCalendar();
-                }, 300);
-            } else {
-                calendarWrapper.style.transform = 'translateX(-100%)';
+            if (diff > 50) {
+                // 오른쪽 스와이프 → 이전 월
+                calendarMonth--;
+                if (calendarMonth < 0) { calendarMonth = 11; calendarYear--; }
+                renderCalendar();
+            } else if (diff < -50) {
+                // 왼쪽 스와이프 → 다음 월
+                calendarMonth++;
+                if (calendarMonth > 11) { calendarMonth = 0; calendarYear++; }
+                renderCalendar();
             }
-            touchStartX = 0;
-            touchEndX = 0;
         });
 
         // Month Picker
@@ -1042,8 +1008,6 @@
 
         // Calendar Rendering
         const calendarDays = document.getElementById('calendarDays');
-        const calendarDaysPrev = document.getElementById('calendarDaysPrev');
-        const calendarDaysNext = document.getElementById('calendarDaysNext');
         const dayDetail = document.getElementById('dayDetail');
         const dayDetailTitle = document.getElementById('dayDetailTitle');
         const dayExercises = document.getElementById('dayExercises');
@@ -1127,18 +1091,7 @@
 
         function renderCalendar() {
             calendarTitleBtn.textContent = `${calendarYear}년 ${calendarMonth + 1}월`;
-
-            const prevMonth = calendarMonth === 0 ? 11 : calendarMonth - 1;
-            const prevYear = calendarMonth === 0 ? calendarYear - 1 : calendarYear;
-            const nextMonth = calendarMonth === 11 ? 0 : calendarMonth + 1;
-            const nextYear = calendarMonth === 11 ? calendarYear + 1 : calendarYear;
-
-            renderMonthDays(prevYear, prevMonth, calendarDaysPrev);
             renderMonthDays(calendarYear, calendarMonth, calendarDays);
-            renderMonthDays(nextYear, nextMonth, calendarDaysNext);
-
-            calendarWrapper.style.transition = 'none';
-            calendarWrapper.style.transform = 'translateX(-100%)';
         }
 
         function showDayDetail(dateStr) {
@@ -1517,12 +1470,51 @@
         editTitleBtn.addEventListener('click', startEditTitle);
         detailTitle.addEventListener('click', startEditTitle);
 
+        // Validation 헬퍼
+        function sanitizeNumber(value, allowDecimal = false) {
+            if (value === '' || value === null || value === undefined) return '';
+            let str = String(value).replace(/[^0-9.,-]/g, '').replace(',', '.');
+            if (!allowDecimal) str = str.replace(/\./g, '');
+            // 첫 번째 점만 유지
+            const parts = str.split('.');
+            if (parts.length > 2) str = parts[0] + '.' + parts.slice(1).join('');
+            // 음수 제거 (맨 앞 - 제거)
+            str = str.replace(/-/g, '');
+            return str;
+        }
+
+        function validateInput(input, allowDecimal = false) {
+            input.addEventListener('input', () => {
+                const pos = input.selectionStart;
+                const before = input.value;
+                input.value = sanitizeNumber(input.value, allowDecimal);
+                // 커서 위치 유지
+                if (before !== input.value) {
+                    input.selectionStart = input.selectionEnd = Math.max(0, pos - (before.length - input.value.length));
+                }
+            });
+            input.addEventListener('paste', e => {
+                e.preventDefault();
+                const text = (e.clipboardData || window.clipboardData).getData('text');
+                input.value = sanitizeNumber(text, allowDecimal);
+            });
+        }
+
+        // 무게: 소수점 허용, 횟수: 정수만
+        validateInput(weightInput, true);
+        validateInput(repsInput, false);
+
         function addSet() {
             const d = dateInput.value || today;
-            const w = parseFloat(weightInput.value) || 0;
-            const r = parseInt(repsInput.value);
+            const wRaw = sanitizeNumber(weightInput.value, true);
+            const rRaw = sanitizeNumber(repsInput.value, false);
+            const w = wRaw === '' ? 0 : parseFloat(wRaw);
+            const r = rRaw === '' ? 0 : parseInt(rRaw);
             const m = setMemoInput.value.trim();
-            if (!r) return;
+
+            // validation
+            if (isNaN(w) || w < 0) { weightInput.focus(); return; }
+            if (isNaN(r) || r <= 0) { repsInput.focus(); return; }
 
             const record = { d, w, r };
             if (m) record.m = m;
@@ -1704,6 +1696,7 @@
             if (time > 0) { presetBtns.forEach(b => b.classList.remove('active')); setTimerFn(time); customTimeInput.value = ''; }
         });
         customTimeInput.addEventListener('keydown', e => { if (e.key === 'Enter') setCustomTimeBtn.click(); });
+        validateInput(customTimeInput, false);
 
         // 해시 기반 라우팅
         let isNavigating = false;
