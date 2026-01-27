@@ -163,9 +163,9 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-start;
+            justify-content: space-between;
             padding: 6px 2px;
-            border: none;
+            border: 1px solid #e8e8e8;
             background: none;
             border-radius: 10px;
             cursor: pointer;
@@ -173,6 +173,8 @@
             color: #1d1d1f;
             transition: background 0.15s;
             min-height: 50px;
+            min-width: 0;
+            width: 100%;
         }
         .calendar-day:active { background: #e8e8ed; }
         .calendar-day.other-month { color: #ccc; }
@@ -381,8 +383,9 @@
             font-size: 20px;
             font-weight: 600;
             cursor: pointer;
+            flex-shrink: 0;
         }
-        .color-btn { width: 48px; height: 48px; border-radius: 12px; padding: 0; flex-shrink: 0; }
+        button.color-btn { width: 48px; height: 48px; border-radius: 50%; padding: 0; flex-shrink: 0; }
 
         .color-picker {
             background: #fff;
@@ -448,6 +451,7 @@
             background: #fff;
             font-size: 17px;
             text-align: center;
+            width: 100%;
         }
         .input-row input::placeholder { color: #999; }
         .memo-row { margin-bottom: 12px; }
@@ -513,7 +517,51 @@
             border-radius: 12px;
             background: #fff;
             font-size: 16px;
-            margin-bottom: 20px;
+            margin-bottom: 12px;
+        }
+        .chart-period-selector {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .chart-period-btn {
+            padding: 8px 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fff;
+            font-size: 13px;
+            cursor: pointer;
+            color: #666;
+            transition: all 0.15s;
+        }
+        .chart-period-btn.active {
+            background: #007aff;
+            border-color: #007aff;
+            color: #fff;
+        }
+        .chart-period-btn:active {
+            transform: scale(0.95);
+        }
+        .chart-custom-date {
+            display: none;
+            gap: 8px;
+            margin-bottom: 16px;
+            align-items: center;
+        }
+        .chart-custom-date.show {
+            display: flex;
+        }
+        .chart-custom-date input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .chart-custom-date span {
+            color: #888;
+            font-size: 14px;
         }
         .chart-section {
             background: #fff;
@@ -616,6 +664,8 @@
 
             .chart-section { padding: 14px; }
             .chart-select { padding: 12px; font-size: 14px; }
+            .chart-period-btn { padding: 6px 10px; font-size: 12px; }
+            .chart-custom-date input { padding: 8px 10px; font-size: 13px; }
 
             .modal-content { padding: 16px; width: 95%; }
             .month-btn { padding: 10px; font-size: 13px; }
@@ -656,7 +706,7 @@
             .add-form { gap: 4px; }
             .add-form input { padding: 10px 8px; font-size: 13px; }
             .add-form button { padding: 10px 12px; font-size: 16px; }
-            .color-btn { width: 38px; height: 38px; border-radius: 10px; }
+            .color-btn { width: 38px; height: 38px; }
 
             .section-title { font-size: 11px; margin-bottom: 8px; }
             .list-item { padding: 10px; border-radius: 12px; }
@@ -674,6 +724,11 @@
             .modal-content { padding: 14px; }
             .month-grid { gap: 6px; }
             .month-btn { padding: 8px; font-size: 12px; border-radius: 8px; }
+
+            .chart-period-selector { gap: 4px; }
+            .chart-period-btn { padding: 5px 8px; font-size: 11px; }
+            .chart-custom-date { flex-wrap: wrap; gap: 6px; }
+            .chart-custom-date input { padding: 8px; font-size: 12px; min-width: 0; }
 
             .tab-item { padding: 6px 8px; font-size: 9px; }
             .tab-item svg { width: 18px; height: 18px; }
@@ -798,6 +853,19 @@
             <select class="chart-select" id="chartExerciseSelect">
                 <option value="">운동을 선택하세요</option>
             </select>
+            <div class="chart-period-selector" id="chartPeriodSelector">
+                <button class="chart-period-btn active" data-period="week">금주</button>
+                <button class="chart-period-btn" data-period="1month">1개월</button>
+                <button class="chart-period-btn" data-period="3month">3개월</button>
+                <button class="chart-period-btn" data-period="6month">6개월</button>
+                <button class="chart-period-btn" data-period="1year">1년</button>
+                <button class="chart-period-btn" data-period="custom">커스텀</button>
+            </div>
+            <div class="chart-custom-date" id="chartCustomDate">
+                <input type="date" id="chartStartDate">
+                <span>~</span>
+                <input type="date" id="chartEndDate">
+            </div>
             <div id="chartContent" class="hidden">
                 <div class="chart-section">
                     <h3>무게 변화 추이</h3>
@@ -1547,10 +1615,96 @@
         const chartEmpty = document.getElementById('chartEmpty');
         const weightChart = document.getElementById('weightChart');
         const volumeChart = document.getElementById('volumeChart');
+        const chartPeriodBtns = document.querySelectorAll('.chart-period-btn');
+        const chartCustomDate = document.getElementById('chartCustomDate');
+        const chartStartDate = document.getElementById('chartStartDate');
+        const chartEndDate = document.getElementById('chartEndDate');
+
+        let currentChartPeriod = 'week';
 
         function updateChartSelect() {
             chartSelect.innerHTML = '<option value="">운동을 선택하세요</option>' + data.exercises.map(name => `<option value="${name}">${name}</option>`).join('');
         }
+
+        function getDateRange(period) {
+            const now = new Date();
+            const endDate = new Date(now);
+            let startDate = new Date(now);
+
+            switch(period) {
+                case 'week':
+                    // 이번 주 월요일부터
+                    const day = now.getDay();
+                    const diff = day === 0 ? 6 : day - 1;
+                    startDate.setDate(now.getDate() - diff);
+                    break;
+                case '1month':
+                    startDate.setMonth(now.getMonth() - 1);
+                    break;
+                case '3month':
+                    startDate.setMonth(now.getMonth() - 3);
+                    break;
+                case '6month':
+                    startDate.setMonth(now.getMonth() - 6);
+                    break;
+                case '1year':
+                    startDate.setFullYear(now.getFullYear() - 1);
+                    break;
+                case 'custom':
+                    if (chartStartDate.value && chartEndDate.value) {
+                        return {
+                            start: chartStartDate.value,
+                            end: chartEndDate.value
+                        };
+                    }
+                    // 커스텀이지만 날짜 미선택시 최근 1개월
+                    startDate.setMonth(now.getMonth() - 1);
+                    break;
+            }
+
+            return {
+                start: startDate.toISOString().split('T')[0],
+                end: endDate.toISOString().split('T')[0]
+            };
+        }
+
+        chartPeriodBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                chartPeriodBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentChartPeriod = btn.dataset.period;
+
+                if (currentChartPeriod === 'custom') {
+                    chartCustomDate.classList.add('show');
+                    // 기본값 설정 (최근 1개월)
+                    if (!chartStartDate.value || !chartEndDate.value) {
+                        const now = new Date();
+                        chartEndDate.value = now.toISOString().split('T')[0];
+                        const monthAgo = new Date(now);
+                        monthAgo.setMonth(now.getMonth() - 1);
+                        chartStartDate.value = monthAgo.toISOString().split('T')[0];
+                    }
+                } else {
+                    chartCustomDate.classList.remove('show');
+                }
+
+                if (chartSelect.value) {
+                    renderCharts(chartSelect.value);
+                }
+            });
+        });
+
+        chartStartDate.addEventListener('change', () => {
+            if (chartSelect.value && currentChartPeriod === 'custom') {
+                renderCharts(chartSelect.value);
+            }
+        });
+
+        chartEndDate.addEventListener('change', () => {
+            if (chartSelect.value && currentChartPeriod === 'custom') {
+                renderCharts(chartSelect.value);
+            }
+        });
 
         chartSelect.addEventListener('change', () => {
             const exercise = chartSelect.value;
@@ -1564,9 +1718,25 @@
             const records = data.records[exercise] || [];
             if (records.length === 0) { chartContent.classList.add('hidden'); chartEmpty.textContent = '기록이 없습니다'; chartEmpty.classList.remove('hidden'); return; }
 
+            const range = getDateRange(currentChartPeriod);
             const byDate = {};
-            records.forEach(r => { if (!byDate[r.d]) byDate[r.d] = []; byDate[r.d].push(r); });
-            const dates = Object.keys(byDate).sort().slice(-14);
+            records.forEach(r => {
+                if (r.d >= range.start && r.d <= range.end) {
+                    if (!byDate[r.d]) byDate[r.d] = [];
+                    byDate[r.d].push(r);
+                }
+            });
+            const dates = Object.keys(byDate).sort();
+
+            if (dates.length === 0) {
+                chartContent.classList.add('hidden');
+                chartEmpty.textContent = '선택한 기간에 기록이 없습니다';
+                chartEmpty.classList.remove('hidden');
+                return;
+            }
+
+            chartContent.classList.remove('hidden');
+            chartEmpty.classList.add('hidden');
 
             const chartData = dates.map(date => {
                 const dayRecords = byDate[date];
