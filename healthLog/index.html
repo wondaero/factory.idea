@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Log</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            overflow-x: hidden;
+            width: 100%;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f5f7;
+            color: #1d1d1f;
+            min-height: 100vh;
+            min-height: 100dvh;
+            padding-bottom: 70px;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) 20px max(20px, env(safe-area-inset-left));
+            overflow-x: hidden;
+        }
+
+        /* Tab Navigation */
+        .tab-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #fff;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0;
+            padding-bottom: max(8px, env(safe-area-inset-bottom));
+            z-index: 1000;
+        }
+        .tab-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 20px;
+            border: none;
+            background: none;
+            color: #8e8e93;
+            font-size: 11px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .tab-item.active { color: #007aff; }
+        .tab-item svg { width: 24px; height: 24px; }
+
+        header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 24px;
+        }
+        header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
+        .back-btn {
+            background: none;
+            border: none;
+            color: #007aff;
+            font-size: 28px;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .add-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .add-form input {
+            flex: 1;
+            padding: 14px 16px;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            background: #fff;
+            color: #1d1d1f;
+            font-size: 16px;
+        }
+        .add-form input::placeholder { color: #999; }
+        .add-form button {
+            padding: 14px 22px;
+            background: #007aff;
+            border: none;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 20px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .add-form button:active { opacity: 0.8; }
+        .color-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            padding: 0;
+            flex-shrink: 0;
+        }
+
+        .color-picker {
+            background: #fff;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .color-presets {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .color-preset {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: 2px solid transparent;
+            cursor: pointer;
+        }
+        .color-preset.selected { border-color: #1d1d1f; }
+        .color-custom {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #e0e0e0;
+        }
+        .color-custom input {
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            padding: 0;
+        }
+        .color-custom span { color: #666; font-size: 14px; }
+
+        .list { display: flex; flex-direction: column; gap: 10px; }
+        .list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            background: #fff;
+            border-radius: 14px;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            transition: transform 0.1s;
+            border-left: 4px solid #007aff;
+        }
+        .list-item:active { transform: scale(0.98); background: #f9f9f9; }
+        .list-item h3 { font-size: 1.05rem; font-weight: 500; }
+        .list-item .count { color: #888; font-size: 14px; margin-top: 4px; }
+        .list-item .arrow { color: #ccc; font-size: 20px; }
+        .list-item .color-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #ff3b30;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 8px 12px;
+        }
+
+        /* Detail page */
+        .memo-row {
+            margin-bottom: 12px;
+        }
+        .memo-row textarea, .memo-row input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            background: #fff;
+            color: #1d1d1f;
+            font-size: 15px;
+            font-family: inherit;
+            resize: none;
+        }
+        .memo-row textarea::placeholder, .memo-row input::placeholder { color: #999; }
+
+        .date-row {
+            margin-bottom: 12px;
+        }
+        .date-row input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            background: #fff;
+            color: #1d1d1f;
+            font-size: 16px;
+        }
+        .input-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .input-row input {
+            flex: 1;
+            padding: 14px;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            background: #fff;
+            color: #1d1d1f;
+            font-size: 17px;
+            text-align: center;
+        }
+        .input-row input::placeholder { color: #999; }
+        .add-set-btn {
+            width: 100%;
+            padding: 14px;
+            background: #34c759;
+            border: none;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 24px;
+        }
+        .add-set-btn:active { background: #2da44e; }
+
+        .history-title {
+            color: #666;
+            font-size: 13px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .set-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 14px 16px;
+            background: #fff;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+        .set-item .info { font-size: 16px; }
+        .set-item strong { font-size: 18px; font-weight: 600; }
+        .set-item .meta { color: #888; font-size: 13px; }
+        .set-item .set-memo { color: #666; font-size: 13px; margin-top: 4px; font-style: italic; }
+
+        .date-label {
+            color: #666;
+            font-size: 13px;
+            font-weight: 500;
+            margin: 20px 0 10px;
+        }
+
+        .empty { text-align: center; color: #999; padding: 50px 20px; font-size: 15px; }
+
+        .editable-title { cursor: pointer; }
+        .edit-btn {
+            background: none;
+            border: none;
+            color: #007aff;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 5px 10px;
+        }
+
+        .title-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #007aff;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #1d1d1f;
+        }
+
+        .hidden { display: none; }
+
+        /* Chart Page Styles */
+        .chart-select {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            background: #fff;
+            color: #1d1d1f;
+            font-size: 16px;
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+
+        .chart-section {
+            background: #fff;
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .chart-section h3 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 16px;
+            font-weight: 500;
+        }
+
+        .chart-container {
+            height: 200px;
+            position: relative;
+            display: flex;
+            align-items: flex-end;
+            gap: 4px;
+            padding-bottom: 30px;
+        }
+
+        /* Bar Chart */
+        .bar-chart {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            height: 100%;
+            width: 100%;
+            gap: 6px;
+        }
+        .bar-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 40px;
+        }
+        .bar {
+            width: 100%;
+            background: linear-gradient(to top, #007aff, #5ac8fa);
+            border-radius: 6px 6px 0 0;
+            transition: height 0.3s ease;
+            min-height: 4px;
+        }
+        .bar-label {
+            font-size: 10px;
+            color: #888;
+            margin-top: 8px;
+            text-align: center;
+        }
+        .bar-value {
+            font-size: 10px;
+            color: #1d1d1f;
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+
+        /* Line Chart */
+        .line-chart {
+            position: relative;
+            height: 100%;
+            width: 100%;
+        }
+        .line-chart svg {
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+        }
+        .line-path {
+            fill: none;
+            stroke: #007aff;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .line-area {
+            fill: url(#lineGradient);
+        }
+        .line-dot {
+            fill: #007aff;
+        }
+        .line-labels {
+            display: flex;
+            justify-content: space-between;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+        }
+        .line-label {
+            font-size: 10px;
+            color: #888;
+        }
+
+        /* Timer Page Styles */
+        .timer-display {
+            text-align: center;
+            padding: 40px 20px;
+        }
+        .timer-time {
+            font-size: 80px;
+            font-weight: 200;
+            color: #1d1d1f;
+            font-variant-numeric: tabular-nums;
+            line-height: 1;
+            margin-bottom: 10px;
+        }
+        .timer-status {
+            font-size: 16px;
+            color: #888;
+            margin-bottom: 30px;
+        }
+
+        .timer-presets {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .preset-btn {
+            padding: 16px 10px;
+            background: #fff;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            color: #1d1d1f;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .preset-btn.active {
+            border-color: #007aff;
+            background: #007aff;
+            color: #fff;
+        }
+        .preset-btn:active { transform: scale(0.95); }
+
+        .timer-custom {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+        .timer-custom input {
+            flex: 1;
+            padding: 14px;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            background: #fff;
+            font-size: 16px;
+            text-align: center;
+        }
+        .timer-custom button {
+            padding: 14px 20px;
+            background: #007aff;
+            border: none;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .timer-controls {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        .timer-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: none;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .timer-btn:active { transform: scale(0.95); }
+        .timer-btn.start {
+            background: #34c759;
+            color: #fff;
+        }
+        .timer-btn.pause {
+            background: #ff9500;
+            color: #fff;
+        }
+        .timer-btn.reset {
+            background: #e0e0e0;
+            color: #1d1d1f;
+        }
+
+        .timer-progress {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 30px;
+            position: relative;
+        }
+        .timer-progress svg {
+            transform: rotate(-90deg);
+            width: 100%;
+            height: 100%;
+        }
+        .timer-progress-bg {
+            fill: none;
+            stroke: #e0e0e0;
+            stroke-width: 8;
+        }
+        .timer-progress-bar {
+            fill: none;
+            stroke: #007aff;
+            stroke-width: 8;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.1s linear;
+        }
+        .timer-progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Tab: Record (Main) -->
+        <div id="recordTab">
+            <!-- Main Page: Exercise List -->
+            <div id="mainPage">
+                <header>
+                    <h1>Health Log</h1>
+                </header>
+                <div class="add-form">
+                    <button class="color-btn" id="colorBtn" style="background:#007aff"></button>
+                    <input type="text" id="exerciseName" placeholder="운동 이름">
+                    <button id="addExerciseBtn">+</button>
+                </div>
+                <div class="color-picker hidden" id="colorPicker">
+                    <div class="color-presets" id="colorPresets"></div>
+                    <div class="color-custom">
+                        <input type="color" id="customColor" value="#007aff">
+                        <span>커스텀</span>
+                    </div>
+                </div>
+                <div class="list" id="exerciseList"></div>
+            </div>
+
+            <!-- Detail Page: Sets -->
+            <div id="detailPage" class="hidden">
+                <header>
+                    <button class="back-btn" id="backBtn">←</button>
+                    <h1 id="detailTitle" class="editable-title">운동명</h1>
+                    <button class="edit-btn" id="editTitleBtn">✎</button>
+                </header>
+                <div class="memo-row">
+                    <textarea id="exerciseMemo" placeholder="운동 메모 (선택)" rows="2"></textarea>
+                </div>
+                <div class="date-row">
+                    <input type="date" id="dateInput">
+                </div>
+                <div class="input-row">
+                    <input type="number" id="weightInput" placeholder="kg" inputmode="decimal">
+                    <input type="number" id="repsInput" placeholder="reps" inputmode="numeric">
+                </div>
+                <div class="memo-row">
+                    <input type="text" id="setMemo" placeholder="세트 메모 (선택)">
+                </div>
+                <button class="add-set-btn" id="addSetBtn">Add Set</button>
+                <div class="history-title">기록</div>
+                <div id="setList"></div>
+            </div>
+        </div>
+
+        <!-- Tab: Chart -->
+        <div id="chartTab" class="hidden">
+            <header>
+                <h1>차트</h1>
+            </header>
+            <select class="chart-select" id="chartExerciseSelect">
+                <option value="">운동을 선택하세요</option>
+            </select>
+            <div id="chartContent" class="hidden">
+                <div class="chart-section">
+                    <h3>무게 변화 추이</h3>
+                    <div class="chart-container">
+                        <div class="line-chart" id="weightChart"></div>
+                    </div>
+                </div>
+                <div class="chart-section">
+                    <h3>일별 볼륨 (kg × reps)</h3>
+                    <div class="chart-container">
+                        <div class="bar-chart" id="volumeChart"></div>
+                    </div>
+                </div>
+            </div>
+            <div id="chartEmpty" class="empty">운동을 선택하면 차트가 표시됩니다</div>
+        </div>
+
+        <!-- Tab: Timer -->
+        <div id="timerTab" class="hidden">
+            <header>
+                <h1>휴식 타이머</h1>
+            </header>
+            <div class="timer-display">
+                <div class="timer-progress">
+                    <svg viewBox="0 0 100 100">
+                        <circle class="timer-progress-bg" cx="50" cy="50" r="45"/>
+                        <circle class="timer-progress-bar" id="timerProgressBar" cx="50" cy="50" r="45"
+                            stroke-dasharray="283" stroke-dashoffset="0"/>
+                    </svg>
+                    <div class="timer-progress-text">
+                        <div class="timer-time" id="timerDisplay">1:00</div>
+                        <div class="timer-status" id="timerStatus">준비</div>
+                    </div>
+                </div>
+            </div>
+            <div class="timer-presets">
+                <button class="preset-btn" data-time="30">30초</button>
+                <button class="preset-btn active" data-time="60">1분</button>
+                <button class="preset-btn" data-time="90">1분 30초</button>
+                <button class="preset-btn" data-time="120">2분</button>
+            </div>
+            <div class="timer-custom">
+                <input type="number" id="customTime" placeholder="초 입력" inputmode="numeric">
+                <button id="setCustomTime">설정</button>
+            </div>
+            <div class="timer-controls">
+                <button class="timer-btn reset" id="timerReset">리셋</button>
+                <button class="timer-btn start" id="timerToggle">시작</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Bar -->
+    <nav class="tab-bar">
+        <button class="tab-item active" data-tab="record">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
+            </svg>
+            <span>기록</span>
+        </button>
+        <button class="tab-item" data-tab="chart">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 20V10M12 20V4M6 20v-6"/>
+            </svg>
+            <span>차트</span>
+        </button>
+        <button class="tab-item" data-tab="timer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2"/>
+            </svg>
+            <span>타이머</span>
+        </button>
+    </nav>
+
+    <script>
+        // ==================== DATA ====================
+        const KEY = 'healthLog';
+        const today = new Date().toISOString().split('T')[0];
+        const PRESET_COLORS = [
+            '#ff6b6b', '#ff8787', '#f06595', '#cc5de8', '#845ef7',
+            '#5c7cfa', '#339af0', '#22b8cf', '#20c997', '#51cf66',
+            '#94d82d', '#fcc419', '#ff922b', '#ff6b6b', '#868e96'
+        ];
+
+        let stored = JSON.parse(localStorage.getItem(KEY) || '{}');
+        let data = (stored.exercises && stored.records)
+            ? { ...stored, colors: stored.colors || {}, memos: stored.memos || {} }
+            : { exercises: [], colors: {}, memos: {}, records: {} };
+        let currentExercise = null;
+        let selectedColor = '#007aff';
+
+        function save() {
+            localStorage.setItem(KEY, JSON.stringify(data));
+        }
+
+        // ==================== TAB NAVIGATION ====================
+        const tabs = {
+            record: document.getElementById('recordTab'),
+            chart: document.getElementById('chartTab'),
+            timer: document.getElementById('timerTab')
+        };
+        const tabButtons = document.querySelectorAll('.tab-item');
+
+        function switchTab(tabName) {
+            Object.values(tabs).forEach(t => t.classList.add('hidden'));
+            tabs[tabName].classList.remove('hidden');
+            tabButtons.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tab === tabName);
+            });
+            if (tabName === 'chart') {
+                updateChartSelect();
+            }
+        }
+
+        tabButtons.forEach(btn => {
+            btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+        });
+
+        // ==================== RECORD TAB ====================
+        const mainPage = document.getElementById('mainPage');
+        const detailPage = document.getElementById('detailPage');
+        const exerciseList = document.getElementById('exerciseList');
+        const exerciseNameInput = document.getElementById('exerciseName');
+        const detailTitle = document.getElementById('detailTitle');
+        const setList = document.getElementById('setList');
+        const dateInput = document.getElementById('dateInput');
+        const weightInput = document.getElementById('weightInput');
+        const repsInput = document.getElementById('repsInput');
+        const exerciseMemo = document.getElementById('exerciseMemo');
+        const setMemoInput = document.getElementById('setMemo');
+        const colorBtn = document.getElementById('colorBtn');
+        const colorPicker = document.getElementById('colorPicker');
+        const colorPresets = document.getElementById('colorPresets');
+        const customColor = document.getElementById('customColor');
+
+        // Color picker
+        colorPresets.innerHTML = PRESET_COLORS.map(c =>
+            `<div class="color-preset" data-color="${c}" style="background:${c}"></div>`
+        ).join('');
+
+        function selectColor(color) {
+            selectedColor = color;
+            colorBtn.style.background = color;
+            customColor.value = color;
+            document.querySelectorAll('.color-preset').forEach(el => {
+                el.classList.toggle('selected', el.dataset.color === color);
+            });
+        }
+
+        colorBtn.addEventListener('click', () => {
+            colorPicker.classList.toggle('hidden');
+        });
+
+        colorPresets.addEventListener('click', e => {
+            if (e.target.classList.contains('color-preset')) {
+                selectColor(e.target.dataset.color);
+                colorPicker.classList.add('hidden');
+            }
+        });
+
+        customColor.addEventListener('input', e => {
+            selectColor(e.target.value);
+        });
+
+        customColor.addEventListener('change', () => {
+            colorPicker.classList.add('hidden');
+        });
+
+        function renderMain() {
+            if (data.exercises.length === 0) {
+                exerciseList.innerHTML = '<div class="empty">운동을 추가하세요</div>';
+                return;
+            }
+
+            exerciseList.innerHTML = data.exercises.map(name => {
+                const records = data.records[name] || [];
+                const todayCount = records.filter(r => r.d === today).length;
+                const color = data.colors[name] || '#007aff';
+                return `
+                <div class="list-item" data-name="${name}" style="border-left-color:${color}">
+                    <div style="display:flex;align-items:center">
+                        <div class="color-dot" style="background:${color}"></div>
+                        <div>
+                            <h3>${name}</h3>
+                            <span class="count">오늘 ${todayCount}세트</span>
+                        </div>
+                    </div>
+                    <div>
+                        <button class="delete-btn" data-name="${name}">&times;</button>
+                        <span class="arrow">›</span>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        function renderDetail() {
+            const records = data.records[currentExercise] || [];
+
+            if (records.length === 0) {
+                setList.innerHTML = '<div class="empty">기록이 없습니다</div>';
+                return;
+            }
+
+            const byDate = {};
+            records.forEach((r, i) => {
+                if (!byDate[r.d]) byDate[r.d] = [];
+                byDate[r.d].push({ ...r, idx: i });
+            });
+
+            const dates = Object.keys(byDate).sort().reverse();
+
+            setList.innerHTML = dates.map(date => {
+                const sets = byDate[date];
+                const dateLabel = date === today ? '오늘' : date;
+                return `
+                    <div class="date-label">${dateLabel}</div>
+                    ${sets.map((s, i) => `
+                        <div class="set-item">
+                            <div>
+                                <span class="info"><strong>${s.w}kg</strong> x ${s.r}reps</span>
+                                ${s.m ? `<div class="set-memo">${s.m}</div>` : ''}
+                            </div>
+                            <div>
+                                <span class="meta">Set ${i + 1}</span>
+                                <button class="delete-btn" data-idx="${s.idx}">&times;</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                `;
+            }).join('');
+        }
+
+        function showMain() {
+            mainPage.classList.remove('hidden');
+            detailPage.classList.add('hidden');
+            currentExercise = null;
+            renderMain();
+        }
+
+        function showDetail(name) {
+            currentExercise = name;
+            detailTitle.textContent = name;
+            mainPage.classList.add('hidden');
+            detailPage.classList.remove('hidden');
+            exerciseMemo.value = data.memos[name] || '';
+            dateInput.value = today;
+            weightInput.value = '';
+            repsInput.value = '';
+            setMemoInput.value = '';
+            renderDetail();
+        }
+
+        exerciseMemo.addEventListener('blur', () => {
+            if (currentExercise) {
+                data.memos[currentExercise] = exerciseMemo.value.trim();
+                save();
+            }
+        });
+
+        function addExercise() {
+            const name = exerciseNameInput.value.trim();
+            if (!name || data.exercises.includes(name)) return;
+
+            data.exercises.push(name);
+            data.colors[name] = selectedColor;
+            data.records[name] = [];
+            save();
+            renderMain();
+            exerciseNameInput.value = '';
+            colorPicker.classList.add('hidden');
+        }
+
+        document.getElementById('addExerciseBtn').addEventListener('click', addExercise);
+        exerciseNameInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter') addExercise();
+        });
+
+        exerciseList.addEventListener('click', e => {
+            if (e.target.classList.contains('delete-btn')) {
+                const name = e.target.dataset.name;
+                data.exercises = data.exercises.filter(n => n !== name);
+                delete data.colors[name];
+                delete data.memos[name];
+                delete data.records[name];
+                save();
+                renderMain();
+                return;
+            }
+
+            const item = e.target.closest('.list-item');
+            if (item) {
+                showDetail(item.dataset.name);
+            }
+        });
+
+        document.getElementById('backBtn').addEventListener('click', showMain);
+
+        // Edit title
+        const editTitleBtn = document.getElementById('editTitleBtn');
+
+        function startEditTitle() {
+            const currentName = currentExercise;
+            const header = detailTitle.parentElement;
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'title-input';
+            input.value = currentName;
+
+            detailTitle.style.display = 'none';
+            editTitleBtn.style.display = 'none';
+            header.insertBefore(input, detailTitle);
+            input.focus();
+            input.select();
+
+            function finishEdit() {
+                const newName = input.value.trim();
+                input.remove();
+                detailTitle.style.display = '';
+                editTitleBtn.style.display = '';
+
+                if (!newName || newName === currentName) return;
+
+                if (data.exercises.includes(newName)) {
+                    if (confirm(`"${newName}" 이미 존재합니다. 합칠까요?`)) {
+                        data.records[newName] = [...data.records[newName], ...data.records[currentName]];
+                        data.exercises = data.exercises.filter(n => n !== currentName);
+                        delete data.colors[currentName];
+                        delete data.memos[currentName];
+                        delete data.records[currentName];
+                        currentExercise = newName;
+                        detailTitle.textContent = newName;
+                        exerciseMemo.value = data.memos[newName] || '';
+                        save();
+                        renderDetail();
+                    }
+                } else {
+                    const idx = data.exercises.indexOf(currentName);
+                    data.exercises[idx] = newName;
+                    data.colors[newName] = data.colors[currentName];
+                    delete data.colors[currentName];
+                    data.memos[newName] = data.memos[currentName];
+                    delete data.memos[currentName];
+                    data.records[newName] = data.records[currentName];
+                    delete data.records[currentName];
+                    currentExercise = newName;
+                    detailTitle.textContent = newName;
+                    save();
+                }
+            }
+
+            input.addEventListener('blur', finishEdit);
+            input.addEventListener('keydown', e => {
+                if (e.key === 'Enter') input.blur();
+                if (e.key === 'Escape') {
+                    input.value = currentName;
+                    input.blur();
+                }
+            });
+        }
+
+        editTitleBtn.addEventListener('click', startEditTitle);
+        detailTitle.addEventListener('click', startEditTitle);
+
+        function addSet() {
+            const d = dateInput.value || today;
+            const w = parseFloat(weightInput.value) || 0;
+            const r = parseInt(repsInput.value);
+            const m = setMemoInput.value.trim();
+            if (!r) return;
+
+            const record = { d, w, r };
+            if (m) record.m = m;
+            data.records[currentExercise].push(record);
+            save();
+            renderDetail();
+            weightInput.value = '';
+            repsInput.value = '';
+            setMemoInput.value = '';
+            weightInput.focus();
+        }
+
+        document.getElementById('addSetBtn').addEventListener('click', addSet);
+        [weightInput, repsInput].forEach(el => {
+            el.addEventListener('keydown', e => {
+                if (e.key === 'Enter') addSet();
+            });
+        });
+
+        setList.addEventListener('click', e => {
+            if (e.target.classList.contains('delete-btn')) {
+                const idx = parseInt(e.target.dataset.idx);
+                data.records[currentExercise].splice(idx, 1);
+                save();
+                renderDetail();
+            }
+        });
+
+        // ==================== CHART TAB ====================
+        const chartSelect = document.getElementById('chartExerciseSelect');
+        const chartContent = document.getElementById('chartContent');
+        const chartEmpty = document.getElementById('chartEmpty');
+        const weightChart = document.getElementById('weightChart');
+        const volumeChart = document.getElementById('volumeChart');
+
+        function updateChartSelect() {
+            chartSelect.innerHTML = '<option value="">운동을 선택하세요</option>' +
+                data.exercises.map(name => `<option value="${name}">${name}</option>`).join('');
+        }
+
+        chartSelect.addEventListener('change', () => {
+            const exercise = chartSelect.value;
+            if (!exercise) {
+                chartContent.classList.add('hidden');
+                chartEmpty.classList.remove('hidden');
+                return;
+            }
+            chartContent.classList.remove('hidden');
+            chartEmpty.classList.add('hidden');
+            renderCharts(exercise);
+        });
+
+        function renderCharts(exercise) {
+            const records = data.records[exercise] || [];
+            if (records.length === 0) {
+                chartContent.classList.add('hidden');
+                chartEmpty.textContent = '기록이 없습니다';
+                chartEmpty.classList.remove('hidden');
+                return;
+            }
+
+            // Group by date
+            const byDate = {};
+            records.forEach(r => {
+                if (!byDate[r.d]) byDate[r.d] = [];
+                byDate[r.d].push(r);
+            });
+
+            // Get last 14 days with data
+            const dates = Object.keys(byDate).sort().slice(-14);
+
+            // Calculate max weight and volume per day
+            const chartData = dates.map(date => {
+                const dayRecords = byDate[date];
+                const maxWeight = Math.max(...dayRecords.map(r => r.w));
+                const totalVolume = dayRecords.reduce((sum, r) => sum + (r.w * r.r), 0);
+                return { date, maxWeight, totalVolume };
+            });
+
+            renderWeightChart(chartData);
+            renderVolumeChart(chartData);
+        }
+
+        function formatDate(dateStr) {
+            const d = new Date(dateStr);
+            return `${d.getMonth() + 1}/${d.getDate()}`;
+        }
+
+        function renderWeightChart(chartData) {
+            if (chartData.length === 0) {
+                weightChart.innerHTML = '<div class="empty">데이터 없음</div>';
+                return;
+            }
+
+            const maxWeight = Math.max(...chartData.map(d => d.maxWeight));
+            const minWeight = Math.min(...chartData.map(d => d.maxWeight));
+            const range = maxWeight - minWeight || 1;
+
+            const width = 100;
+            const height = 100;
+            const padding = 10;
+            const chartWidth = width - padding * 2;
+            const chartHeight = height - padding * 2;
+
+            const points = chartData.map((d, i) => {
+                const x = padding + (i / (chartData.length - 1 || 1)) * chartWidth;
+                const y = padding + chartHeight - ((d.maxWeight - minWeight) / range) * chartHeight;
+                return { x, y, data: d };
+            });
+
+            const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+            const areaD = pathD + ` L ${points[points.length - 1].x} ${height - padding} L ${padding} ${height - padding} Z`;
+
+            weightChart.innerHTML = `
+                <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+                    <defs>
+                        <linearGradient id="lineGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" style="stop-color:#007aff;stop-opacity:0.3"/>
+                            <stop offset="100%" style="stop-color:#007aff;stop-opacity:0"/>
+                        </linearGradient>
+                    </defs>
+                    <path class="line-area" d="${areaD}"/>
+                    <path class="line-path" d="${pathD}"/>
+                    ${points.map(p => `<circle class="line-dot" cx="${p.x}" cy="${p.y}" r="3"/>`).join('')}
+                </svg>
+                <div class="line-labels">
+                    ${chartData.filter((_, i) => i === 0 || i === chartData.length - 1).map(d =>
+                        `<span class="line-label">${formatDate(d.date)}<br>${d.maxWeight}kg</span>`
+                    ).join('')}
+                </div>
+            `;
+        }
+
+        function renderVolumeChart(chartData) {
+            if (chartData.length === 0) {
+                volumeChart.innerHTML = '<div class="empty">데이터 없음</div>';
+                return;
+            }
+
+            const maxVolume = Math.max(...chartData.map(d => d.totalVolume));
+
+            volumeChart.innerHTML = chartData.map(d => {
+                const heightPercent = (d.totalVolume / maxVolume) * 100;
+                return `
+                    <div class="bar-item">
+                        <span class="bar-value">${d.totalVolume >= 1000 ? (d.totalVolume / 1000).toFixed(1) + 'k' : d.totalVolume}</span>
+                        <div class="bar" style="height: ${heightPercent}%"></div>
+                        <span class="bar-label">${formatDate(d.date)}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ==================== TIMER TAB ====================
+        let timerDuration = 60;
+        let timerRemaining = 60;
+        let timerInterval = null;
+        let timerRunning = false;
+
+        const timerDisplay = document.getElementById('timerDisplay');
+        const timerStatus = document.getElementById('timerStatus');
+        const timerToggle = document.getElementById('timerToggle');
+        const timerReset = document.getElementById('timerReset');
+        const timerProgressBar = document.getElementById('timerProgressBar');
+        const presetBtns = document.querySelectorAll('.preset-btn');
+        const customTimeInput = document.getElementById('customTime');
+        const setCustomTimeBtn = document.getElementById('setCustomTime');
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return `${m}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function updateTimerDisplay() {
+            timerDisplay.textContent = formatTime(timerRemaining);
+            const progress = timerRemaining / timerDuration;
+            const circumference = 283; // 2 * PI * 45
+            timerProgressBar.style.strokeDashoffset = circumference * (1 - progress);
+        }
+
+        function setTimer(seconds) {
+            timerDuration = seconds;
+            timerRemaining = seconds;
+            timerRunning = false;
+            clearInterval(timerInterval);
+            timerToggle.textContent = '시작';
+            timerToggle.classList.remove('pause');
+            timerToggle.classList.add('start');
+            timerStatus.textContent = '준비';
+            updateTimerDisplay();
+        }
+
+        function startTimer() {
+            if (timerRemaining <= 0) {
+                timerRemaining = timerDuration;
+            }
+            timerRunning = true;
+            timerToggle.textContent = '일시정지';
+            timerToggle.classList.remove('start');
+            timerToggle.classList.add('pause');
+            timerStatus.textContent = '진행 중';
+
+            timerInterval = setInterval(() => {
+                timerRemaining--;
+                updateTimerDisplay();
+
+                if (timerRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    timerRunning = false;
+                    timerToggle.textContent = '시작';
+                    timerToggle.classList.remove('pause');
+                    timerToggle.classList.add('start');
+                    timerStatus.textContent = '완료!';
+
+                    // Vibrate if available
+                    if (navigator.vibrate) {
+                        navigator.vibrate([200, 100, 200, 100, 200]);
+                    }
+
+                    // Play sound
+                    try {
+                        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                        const oscillator = audioCtx.createOscillator();
+                        const gainNode = audioCtx.createGain();
+                        oscillator.connect(gainNode);
+                        gainNode.connect(audioCtx.destination);
+                        oscillator.frequency.value = 800;
+                        oscillator.type = 'sine';
+                        gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                        oscillator.start(audioCtx.currentTime);
+                        oscillator.stop(audioCtx.currentTime + 0.5);
+                    } catch (e) {}
+                }
+            }, 1000);
+        }
+
+        function pauseTimer() {
+            clearInterval(timerInterval);
+            timerRunning = false;
+            timerToggle.textContent = '계속';
+            timerToggle.classList.remove('pause');
+            timerToggle.classList.add('start');
+            timerStatus.textContent = '일시정지';
+        }
+
+        timerToggle.addEventListener('click', () => {
+            if (timerRunning) {
+                pauseTimer();
+            } else {
+                startTimer();
+            }
+        });
+
+        timerReset.addEventListener('click', () => {
+            setTimer(timerDuration);
+        });
+
+        presetBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                presetBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                setTimer(parseInt(btn.dataset.time));
+            });
+        });
+
+        setCustomTimeBtn.addEventListener('click', () => {
+            const time = parseInt(customTimeInput.value);
+            if (time > 0) {
+                presetBtns.forEach(b => b.classList.remove('active'));
+                setTimer(time);
+                customTimeInput.value = '';
+            }
+        });
+
+        customTimeInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter') setCustomTimeBtn.click();
+        });
+
+        // ==================== INIT ====================
+        renderMain();
+        updateTimerDisplay();
+    </script>
+</body>
+</html>
