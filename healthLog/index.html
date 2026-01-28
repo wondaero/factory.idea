@@ -127,16 +127,19 @@
             gap: 8px;
         }
         .calendar-nav button {
-            width: 32px;
+            min-width: 32px;
             height: 32px;
+            padding: 0 10px;
             border: none;
             background: #f0f0f0;
             border-radius: 8px;
-            font-size: 16px;
+            font-size: 14px;
             cursor: pointer;
             color: #1d1d1f;
         }
         .calendar-nav button:active { background: #e0e0e0; }
+        #todayBtn { background: #007aff; color: #fff; font-weight: 500; }
+        #todayBtn:active { background: #0056b3; }
         .calendar-weekdays {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
@@ -311,6 +314,39 @@
         .day-exercise-item .exercise-sets { font-size: 13px; color: #888; }
         .day-exercise-item .exercise-memo { font-size: 12px; color: #666; font-style: italic; margin-top: 2px; }
         .day-exercise-item .arrow { color: #ccc; font-size: 18px; }
+        .day-exercise-item .delete-btn {
+            width: 28px;
+            height: 28px;
+            border: none;
+            background: #ff3b30;
+            color: #fff;
+            border-radius: 50%;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-left: 8px;
+        }
+        .day-exercise-item .delete-btn:active { background: #d63029; }
+        .day-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        .day-actions .day-add-btn { flex: 1; margin: 0; }
+        .day-clear-btn {
+            padding: 14px 20px;
+            background: #ff3b30;
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .day-clear-btn:active { background: #d63029; }
         .day-add-btn {
             width: 100%;
             padding: 14px;
@@ -769,6 +805,7 @@
                         <div class="calendar-header">
                             <button class="calendar-title-btn" id="calendarTitleBtn">2024년 1월</button>
                             <div class="calendar-nav">
+                                <button id="todayBtn">오늘</button>
                                 <button id="prevMonth">‹</button>
                                 <button id="nextMonth">›</button>
                             </div>
@@ -899,7 +936,7 @@
 
         <!-- Settings Tab -->
         <div id="settingsTab" class="hidden">
-            <header><h1>설정</h1></header>
+            <header><h1>운동 목록</h1></header>
             <div class="section-title">운동 목록</div>
             <div class="add-form">
                 <button class="color-btn" id="colorBtn" style="background:#007aff"></button>
@@ -955,16 +992,17 @@
         </button>
         <button class="tab-item" data-tab="settings">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+                <path d="M6 5v14M18 5v14"/>
+                <rect x="3" y="8" width="6" height="8" rx="1"/>
+                <rect x="15" y="8" width="6" height="8" rx="1"/>
             </svg>
-            <span>설정</span>
+            <span>운동 목록</span>
         </button>
     </nav>
 
     <script>
         const KEY = 'healthLog';
-        const today = new Date().toISOString().split('T')[0];
+        const today = new Date().toLocaleDateString('sv-SE');
         const PRESET_COLORS = [
             // 레드/핑크
             '#ff6b6b', '#fa5252', '#e64980', '#f06595', '#ff8787',
@@ -1004,6 +1042,14 @@
             return new Date(y, m - 1, d);
         }
 
+        // 로컬 날짜를 YYYY-MM-DD 문자열로 변환 (UTC 문제 방지)
+        function toDateStr(date) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
         // Tab Navigation
         const tabs = { record: document.getElementById('recordTab'), chart: document.getElementById('chartTab'), timer: document.getElementById('timerTab'), settings: document.getElementById('settingsTab') };
         const tabButtons = document.querySelectorAll('.tab-item');
@@ -1014,6 +1060,7 @@
             tabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tabName));
             if (tabName === 'chart') updateChartSelect();
             if (tabName === 'record') currentViewMode === 'calendar' ? renderCalendar() : renderFeedView();
+            if (tabName === 'settings') renderMain();
         }
         tabButtons.forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
 
@@ -1144,7 +1191,7 @@
             for (let i = startDay - 1; i >= 0; i--) {
                 const day = prevLastDay - i;
                 const date = new Date(year, month - 1, day);
-                const dateStr = date.toISOString().split('T')[0];
+                const dateStr = date.toLocaleDateString('sv-SE');
                 const colors = getExerciseColorsForDate(dateStr);
                 const dayOfWeek = (startDay - 1 - i) % 7;
                 let classes = 'calendar-day other-month';
@@ -1155,7 +1202,7 @@
 
             for (let day = 1; day <= totalDays; day++) {
                 const date = new Date(year, month, day);
-                const dateStr = date.toISOString().split('T')[0];
+                const dateStr = date.toLocaleDateString('sv-SE');
                 const colors = getExerciseColorsForDate(dateStr);
                 const dayOfWeek = date.getDay();
                 let classes = 'calendar-day';
@@ -1166,10 +1213,13 @@
                 html += `<button class="${classes}" data-date="${dateStr}"><span class="day-number">${day}</span><div class="exercise-dots">${colors.map(c => `<span class="exercise-dot" style="background:${c}"></span>`).join('')}</div></button>`;
             }
 
-            const remaining = 42 - (startDay + totalDays);
+            // 필요한 줄 수만큼만 렌더링 (4~6줄)
+            const totalCells = startDay + totalDays;
+            const neededRows = Math.ceil(totalCells / 7);
+            const remaining = (neededRows * 7) - totalCells;
             for (let day = 1; day <= remaining; day++) {
                 const date = new Date(year, month + 1, day);
-                const dateStr = date.toISOString().split('T')[0];
+                const dateStr = date.toLocaleDateString('sv-SE');
                 const colors = getExerciseColorsForDate(dateStr);
                 const dayOfWeek = (startDay + totalDays + day - 1) % 7;
                 let classes = 'calendar-day other-month';
@@ -1204,6 +1254,7 @@
                             ${ex.memo ? `<div class="exercise-memo">${ex.memo}</div>` : ''}
                         </div>
                         <span class="arrow">›</span>
+                        <button class="delete-btn" data-delete="${ex.name}">×</button>
                     </div>
                 `).join('');
             }
@@ -1240,6 +1291,14 @@
             if (calendarMonth > 11) { calendarMonth = 0; calendarYear++; }
             renderCalendar();
         });
+        document.getElementById('todayBtn').addEventListener('click', () => {
+            const now = new Date();
+            calendarYear = now.getFullYear();
+            calendarMonth = now.getMonth();
+            selectedDate = today;
+            dayDetail.classList.add('hidden');
+            renderCalendar();
+        });
 
         calendarDays.addEventListener('click', e => {
             const dayBtn = e.target.closest('.calendar-day');
@@ -1247,9 +1306,7 @@
         });
 
         document.getElementById('closeDayDetail').addEventListener('click', () => {
-            dayDetail.classList.add('hidden');
-            selectedDate = today;
-            renderCalendar();
+            clearAllForDate(selectedDate);
         });
         document.getElementById('closeExerciseSelect').addEventListener('click', () => {
             exerciseSelectPanel.classList.add('hidden');
@@ -1257,7 +1314,40 @@
         });
         document.getElementById('dayAddBtn').addEventListener('click', showExerciseSelect);
 
+        // 해당 날짜의 특정 운동 기록 삭제
+        function deleteExerciseForDate(exerciseName, dateStr) {
+            const date = parseLocalDate(dateStr);
+            const dateLabel = `${date.getMonth() + 1}월 ${date.getDate()}일`;
+            if (!confirm(`"${exerciseName}" ${dateLabel} 기록을 삭제할까요?`)) return;
+            if (data.records[exerciseName]) {
+                data.records[exerciseName] = data.records[exerciseName].filter(r => r.d !== dateStr);
+                save();
+                showDayDetail(dateStr);
+            }
+        }
+
+        // 해당 날짜의 모든 운동 기록 삭제
+        function clearAllForDate(dateStr) {
+            const date = parseLocalDate(dateStr);
+            const dateLabel = dateStr === today ? '오늘' : `${date.getMonth() + 1}월 ${date.getDate()}일`;
+            if (!confirm(`${dateLabel}의 모든 운동 기록을 삭제할까요?\n(${getExercisesForDate(dateStr).map(e => e.name).join(', ')})`)) return;
+            for (const exercise of data.exercises) {
+                if (data.records[exercise]) {
+                    data.records[exercise] = data.records[exercise].filter(r => r.d !== dateStr);
+                }
+            }
+            save();
+            showDayDetail(dateStr);
+        }
+
         dayExercises.addEventListener('click', e => {
+            // 삭제 버튼 클릭
+            const deleteBtn = e.target.closest('.delete-btn');
+            if (deleteBtn) {
+                e.stopPropagation();
+                deleteExerciseForDate(deleteBtn.dataset.delete, selectedDate);
+                return;
+            }
             const item = e.target.closest('.day-exercise-item');
             if (item) showDetail(item.dataset.exercise, selectedDate);
         });
@@ -1683,8 +1773,8 @@
             }
 
             return {
-                start: startDate.toISOString().split('T')[0],
-                end: endDate.toISOString().split('T')[0]
+                start: startDate.toLocaleDateString('sv-SE'),
+                end: endDate.toLocaleDateString('sv-SE')
             };
         }
 
@@ -1699,10 +1789,10 @@
                     // 기본값 설정 (최근 1개월)
                     if (!chartStartDate.value || !chartEndDate.value) {
                         const now = new Date();
-                        chartEndDate.value = now.toISOString().split('T')[0];
+                        chartEndDate.value = now.toLocaleDateString('sv-SE');
                         const monthAgo = new Date(now);
                         monthAgo.setMonth(now.getMonth() - 1);
-                        chartStartDate.value = monthAgo.toISOString().split('T')[0];
+                        chartStartDate.value = monthAgo.toLocaleDateString('sv-SE');
                     }
                 } else {
                     chartCustomDate.classList.remove('show');
@@ -1958,6 +2048,11 @@
                 Object.values(tabs).forEach(t => t.classList.add('hidden'));
                 tabs.timer.classList.remove('hidden');
                 tabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === 'timer'));
+            } else if (route === 'settings') {
+                Object.values(tabs).forEach(t => t.classList.add('hidden'));
+                tabs.settings.classList.remove('hidden');
+                tabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === 'settings'));
+                renderMain();
             } else {
                 // record (기본)
                 Object.values(tabs).forEach(t => t.classList.add('hidden'));
@@ -2037,7 +2132,7 @@
             for (let i = 30; i >= 0; i--) {
                 const d = new Date(now);
                 d.setDate(d.getDate() - i);
-                const dateStr = d.toISOString().split('T')[0];
+                const dateStr = d.toLocaleDateString('sv-SE');
 
                 if (Math.random() > 0.3) {
                     if (Math.random() > 0.3) {
