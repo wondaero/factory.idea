@@ -394,12 +394,10 @@
             margin-bottom: 20px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
-        .color-presets { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
-        .color-preset { width: 36px; height: 36px; border-radius: 8px; border: 2px solid transparent; cursor: pointer; }
+        .color-presets { display: flex; flex-wrap: wrap; gap: 8px; }
+        .color-preset { width: 32px; height: 32px; border-radius: 8px; border: 2px solid transparent; cursor: pointer; transition: transform 0.1s, border-color 0.1s; }
+        .color-preset:active { transform: scale(0.9); }
         .color-preset.selected { border-color: #1d1d1f; }
-        .color-custom { display: flex; align-items: center; gap: 10px; padding-top: 10px; border-top: 1px solid #e0e0e0; }
-        .color-custom input { width: 36px; height: 36px; border: none; border-radius: 8px; cursor: pointer; padding: 0; }
-        .color-custom span { color: #666; font-size: 14px; }
 
         .section-title { font-size: 13px; color: #666; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
 
@@ -803,21 +801,6 @@
                 <div id="listView" class="hidden">
                     <div class="feed-view" id="feedView"></div>
                 </div>
-
-                <div class="section-title">운동 목록</div>
-                <div class="add-form">
-                    <button class="color-btn" id="colorBtn" style="background:#007aff"></button>
-                    <input type="text" id="exerciseName" placeholder="운동 이름">
-                    <button id="addExerciseBtn">+</button>
-                </div>
-                <div class="color-picker hidden" id="colorPicker">
-                    <div class="color-presets" id="colorPresets"></div>
-                    <div class="color-custom">
-                        <input type="color" id="customColor" value="#007aff">
-                        <span>커스텀</span>
-                    </div>
-                </div>
-                <div class="list" id="exerciseList"></div>
             </div>
 
             <!-- Detail Page -->
@@ -913,6 +896,21 @@
                 <button class="timer-btn start" id="timerToggle">시작</button>
             </div>
         </div>
+
+        <!-- Settings Tab -->
+        <div id="settingsTab" class="hidden">
+            <header><h1>설정</h1></header>
+            <div class="section-title">운동 목록</div>
+            <div class="add-form">
+                <button class="color-btn" id="colorBtn" style="background:#007aff"></button>
+                <input type="text" id="exerciseName" placeholder="운동 이름">
+                <button id="addExerciseBtn">+</button>
+            </div>
+            <div class="color-picker hidden" id="colorPicker">
+                <div class="color-presets" id="colorPresets"></div>
+            </div>
+            <div class="list" id="exerciseList"></div>
+        </div>
     </div>
 
     <!-- Month Picker Modal -->
@@ -955,15 +953,35 @@
             </svg>
             <span>타이머</span>
         </button>
+        <button class="tab-item" data-tab="settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+            </svg>
+            <span>설정</span>
+        </button>
     </nav>
 
     <script>
         const KEY = 'healthLog';
         const today = new Date().toISOString().split('T')[0];
         const PRESET_COLORS = [
-            '#ff6b6b', '#ff8787', '#f06595', '#cc5de8', '#845ef7',
-            '#5c7cfa', '#339af0', '#22b8cf', '#20c997', '#51cf66',
-            '#94d82d', '#fcc419', '#ff922b', '#868e96'
+            // 레드/핑크
+            '#ff6b6b', '#fa5252', '#e64980', '#f06595', '#ff8787',
+            // 퍼플/바이올렛
+            '#cc5de8', '#be4bdb', '#845ef7', '#7950f2', '#9775fa',
+            // 블루
+            '#5c7cfa', '#4c6ef5', '#339af0', '#228be6', '#74c0fc',
+            // 시안/틸
+            '#22b8cf', '#15aabf', '#3bc9db', '#66d9e8', '#99e9f2',
+            // 그린
+            '#20c997', '#12b886', '#51cf66', '#40c057', '#8ce99a',
+            // 라임/옐로우
+            '#94d82d', '#82c91e', '#fab005', '#fcc419', '#ffe066',
+            // 오렌지
+            '#ff922b', '#fd7e14', '#f76707', '#e8590c', '#ffa94d',
+            // 그레이
+            '#868e96', '#495057', '#343a40', '#adb5bd', '#dee2e6'
         ];
 
         let stored = JSON.parse(localStorage.getItem(KEY) || '{}');
@@ -980,8 +998,14 @@
 
         function save() { localStorage.setItem(KEY, JSON.stringify(data)); }
 
+        // 로컬 시간대로 날짜 파싱 (UTC 오프셋 문제 해결)
+        function parseLocalDate(dateStr) {
+            const [y, m, d] = dateStr.split('-').map(Number);
+            return new Date(y, m - 1, d);
+        }
+
         // Tab Navigation
-        const tabs = { record: document.getElementById('recordTab'), chart: document.getElementById('chartTab'), timer: document.getElementById('timerTab') };
+        const tabs = { record: document.getElementById('recordTab'), chart: document.getElementById('chartTab'), timer: document.getElementById('timerTab'), settings: document.getElementById('settingsTab') };
         const tabButtons = document.querySelectorAll('.tab-item');
 
         function switchTab(tabName) {
@@ -1164,7 +1188,7 @@
 
         function showDayDetail(dateStr) {
             selectedDate = dateStr;
-            const date = new Date(dateStr);
+            const date = parseLocalDate(dateStr);
             dayDetailTitle.textContent = dateStr === today ? '오늘 기록' : `${date.getMonth() + 1}월 ${date.getDate()}일 기록`;
 
             const exercises = getExercisesForDate(dateStr);
@@ -1189,7 +1213,7 @@
         }
 
         function showExerciseSelect() {
-            const date = new Date(selectedDate);
+            const date = parseLocalDate(selectedDate);
             document.getElementById('exerciseSelectTitle').textContent = selectedDate === today ? '오늘 기록 추가' : `${date.getMonth() + 1}월 ${date.getDate()}일 기록 추가`;
 
             if (data.exercises.length === 0) {
@@ -1254,7 +1278,7 @@
         }
 
         function formatDateKorean(dateStr) {
-            const d = new Date(dateStr);
+            const d = parseLocalDate(dateStr);
             const days = ['일', '월', '화', '수', '목', '금', '토'];
             return `${d.getMonth() + 1}월 ${d.getDate()}일 (${days[d.getDay()]})`;
         }
@@ -1316,14 +1340,12 @@
         const colorBtn = document.getElementById('colorBtn');
         const colorPicker = document.getElementById('colorPicker');
         const colorPresets = document.getElementById('colorPresets');
-        const customColor = document.getElementById('customColor');
 
         colorPresets.innerHTML = PRESET_COLORS.map(c => `<div class="color-preset" data-color="${c}" style="background:${c}"></div>`).join('');
 
         function selectColorFn(color) {
             selectedColor = color;
             colorBtn.style.background = color;
-            customColor.value = color;
             document.querySelectorAll('.color-preset').forEach(el => el.classList.toggle('selected', el.dataset.color === color));
         }
 
@@ -1331,8 +1353,6 @@
         colorPresets.addEventListener('click', e => {
             if (e.target.classList.contains('color-preset')) { selectColorFn(e.target.dataset.color); colorPicker.classList.add('hidden'); }
         });
-        customColor.addEventListener('input', e => selectColorFn(e.target.value));
-        customColor.addEventListener('change', () => colorPicker.classList.add('hidden'));
 
         function renderMain() {
             if (data.exercises.length === 0) {
@@ -1747,7 +1767,7 @@
             renderVolumeChart(chartData);
         }
 
-        function formatDateShort(dateStr) { const d = new Date(dateStr); return `${d.getMonth() + 1}/${d.getDate()}`; }
+        function formatDateShort(dateStr) { const d = parseLocalDate(dateStr); return `${d.getMonth() + 1}/${d.getDate()}`; }
 
         function renderWeightChart(chartData) {
             if (chartData.length === 0) { weightChart.innerHTML = '<div class="empty">데이터 없음</div>'; return; }
