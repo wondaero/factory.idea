@@ -385,6 +385,23 @@
             font-size: 24px;
             cursor: pointer;
         }
+        .feed-add-today {
+            margin-bottom: 16px;
+        }
+        .feed-add-today-btn {
+            width: 100%;
+            padding: 14px;
+            background: #007aff;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .feed-add-today-btn:active {
+            background: #0056b3;
+        }
         .feed-exercises { display: flex; flex-direction: column; gap: 10px; }
         .feed-exercise { border-left: 3px solid #007aff; padding-left: 12px; cursor: pointer; }
         .feed-exercise-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
@@ -731,11 +748,6 @@
         .timer-progress-bar { fill: none; stroke: #007aff; stroke-width: 8; stroke-linecap: round; }
         .timer-progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
 
-        .exercise-select-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
-        .exercise-select-item { display: flex; align-items: center; gap: 12px; padding: 14px; background: #f5f5f7; border-radius: 12px; cursor: pointer; }
-        .exercise-select-item:active { background: #e8e8ed; }
-        .exercise-select-item .color-dot { width: 12px; height: 12px; border-radius: 50%; }
-        .exercise-select-item span { font-size: 16px; font-weight: 500; }
 
         /* 반응형 - 280px까지 지원 */
         @media (max-width: 360px) {
@@ -908,19 +920,13 @@
                         <button class="day-add-btn" id="dayAddBtn">+ 기록 추가</button>
                     </div>
 
-                    <div class="day-detail hidden" id="exerciseSelectPanel">
-                        <div class="day-detail-header">
-                            <h3 id="exerciseSelectTitle">운동 선택</h3>
-                            <button class="day-detail-close" id="closeExerciseSelect">×</button>
-                        </div>
-                        <div class="exercise-select-list" id="exerciseSelectList"></div>
-                    </div>
                 </div>
 
                 <!-- List View -->
                 <div id="listView" class="hidden">
                     <div class="feed-view" id="feedView"></div>
                 </div>
+
             </div>
 
             <!-- Detail Page -->
@@ -1094,7 +1100,7 @@
                 <rect x="3" y="8" width="6" height="8" rx="1"/>
                 <rect x="15" y="8" width="6" height="8" rx="1"/>
             </svg>
-            <span>운동 목록</span>
+            <span>운동 설정</span>
         </button>
     </nav>
 
@@ -1122,8 +1128,8 @@
 
         let stored = JSON.parse(localStorage.getItem(KEY) || '{}');
         let data = (stored.exercises && stored.records)
-            ? { ...stored, colors: stored.colors || {}, memos: stored.memos || {} }
-            : { exercises: [], colors: {}, memos: {}, records: {} };
+            ? { ...stored, colors: stored.colors || {}, memos: stored.memos || {}, achievements: stored.achievements || {} }
+            : { exercises: [], colors: {}, memos: {}, records: {}, achievements: {} };
         let currentExercise = null;
         let selectedColor = '#007aff';
         let selectedDate = today;
@@ -1249,8 +1255,6 @@
         const dayDetail = document.getElementById('dayDetail');
         const dayDetailTitle = document.getElementById('dayDetailTitle');
         const dayExercises = document.getElementById('dayExercises');
-        const exerciseSelectPanel = document.getElementById('exerciseSelectPanel');
-        const exerciseSelectList = document.getElementById('exerciseSelectList');
 
         function getExercisesForDate(dateStr) {
             const result = [];
@@ -1358,26 +1362,7 @@
                 `).join('');
             }
             dayDetail.classList.remove('hidden');
-            exerciseSelectPanel.classList.add('hidden');
             renderCalendar();
-        }
-
-        function showExerciseSelect() {
-            const date = parseLocalDate(selectedDate);
-            document.getElementById('exerciseSelectTitle').textContent = selectedDate === today ? '오늘 기록 추가' : `${date.getMonth() + 1}월 ${date.getDate()}일 기록 추가`;
-
-            if (data.exercises.length === 0) {
-                exerciseSelectList.innerHTML = '<div class="empty" style="padding:20px">먼저 운동을 추가하세요</div>';
-            } else {
-                exerciseSelectList.innerHTML = data.exercises.map(name => `
-                    <div class="exercise-select-item" data-exercise="${name}">
-                        <span class="color-dot" style="background:${data.colors[name] || '#007aff'}"></span>
-                        <span>${name}</span>
-                    </div>
-                `).join('');
-            }
-            exerciseSelectPanel.classList.remove('hidden');
-            dayDetail.classList.add('hidden');
         }
 
         document.getElementById('prevMonth').addEventListener('click', () => {
@@ -1407,11 +1392,7 @@
         document.getElementById('closeDayDetail').addEventListener('click', () => {
             clearAllForDate(selectedDate);
         });
-        document.getElementById('closeExerciseSelect').addEventListener('click', () => {
-            exerciseSelectPanel.classList.add('hidden');
-            if (currentViewMode === 'calendar') showDayDetail(selectedDate);
-        });
-        document.getElementById('dayAddBtn').addEventListener('click', showExerciseSelect);
+        document.getElementById('dayAddBtn').addEventListener('click', () => switchTab('settings'));
 
         // 해당 날짜의 특정 운동 기록 삭제
         function deleteExerciseForDate(exerciseName, dateStr) {
@@ -1450,11 +1431,6 @@
             const item = e.target.closest('.day-exercise-item');
             if (item) showDetail(item.dataset.exercise, selectedDate);
         });
-        exerciseSelectList.addEventListener('click', e => {
-            const item = e.target.closest('.exercise-select-item');
-            if (item) showDetail(item.dataset.exercise, selectedDate);
-        });
-
         // Feed View
         const feedView = document.getElementById('feedView');
 
@@ -1474,11 +1450,16 @@
 
         function renderFeedView() {
             const dates = getAllRecordDates();
+            const addTodayBtn = `
+                <div class="feed-add-today">
+                    <button class="feed-add-today-btn" data-date="${today}">+ 기록 추가</button>
+                </div>
+            `;
             if (dates.length === 0) {
-                feedView.innerHTML = '<div class="empty">기록이 없습니다</div>';
+                feedView.innerHTML = addTodayBtn + '<div class="empty">기록이 없습니다</div>';
                 return;
             }
-            feedView.innerHTML = dates.map(dateStr => {
+            feedView.innerHTML = addTodayBtn + dates.map(dateStr => {
                 const exercises = getExercisesForDate(dateStr);
                 const isToday = dateStr === today;
                 return `
@@ -1507,8 +1488,18 @@
         }
 
         feedView.addEventListener('click', e => {
+            const addTodayBtn = e.target.closest('.feed-add-today-btn');
+            if (addTodayBtn) {
+                selectedDate = addTodayBtn.dataset.date;
+                switchTab('settings');
+                return;
+            }
             const addBtn = e.target.closest('.feed-day-add');
-            if (addBtn) { selectedDate = addBtn.dataset.date; showExerciseSelect(); return; }
+            if (addBtn) {
+                selectedDate = addBtn.dataset.date;
+                switchTab('settings');
+                return;
+            }
             const exerciseEl = e.target.closest('.feed-exercise');
             if (exerciseEl) showDetail(exerciseEl.dataset.exercise, exerciseEl.dataset.date);
         });
@@ -1622,7 +1613,6 @@
             mainPage.classList.add('hidden');
             detailPage.classList.remove('hidden');
             dayDetail.classList.add('hidden');
-            exerciseSelectPanel.classList.add('hidden');
 
             const memo = data.memos[name] || '';
             exerciseMemo.value = memo;
@@ -2103,7 +2093,6 @@
 
             // 모달/패널 닫기
             dayDetail.classList.add('hidden');
-            exerciseSelectPanel.classList.add('hidden');
             monthPickerModal.classList.remove('show');
 
             if (route === 'detail' && parts[1]) {
@@ -2218,13 +2207,29 @@
             { id: 'first3days', title: '작심삼일극복', desc: '앱 등록 후 연속 3일 기록', icon: '🔥', type: 'once' },
             { id: 'total50', title: '오십보백보', desc: '총 50일 기록 달성', icon: '👟', type: 'once' },
             { id: 'total100', title: '백일장', desc: '총 100일 기록 달성', icon: '💯', type: 'once' },
-            // 반복형 업적
+            // 반복형 업적 - 출석
             { id: 'week5', title: '주5일제', desc: '한 주에 5일 운동', icon: '📅', type: 'repeat' },
             { id: 'week7', title: '체육관관장님?', desc: '한 주에 7일 운동', icon: '🏆', type: 'repeat' },
-            { id: 'volumeUpWeek', title: '볼륨업(주)', desc: '전주 대비 볼륨 1% 증가', icon: '📈', type: 'repeat' },
-            { id: 'volumeUpMonth', title: '메가볼륨', desc: '전월 대비 볼륨 1% 증가', icon: '🚀', type: 'repeat' },
-            { id: 'heavyWeek', title: '헤비급(주)', desc: '전주 대비 무게 1% 증가', icon: '🏋️', type: 'repeat' },
-            { id: 'heavyMonth', title: '슈퍼헤비급', desc: '전월 대비 무게 1% 증가', icon: '💪', type: 'repeat' },
+            // 반복형 업적 - 볼륨 (주)
+            { id: 'volumeUpWeek1', title: '볼륨업', desc: '전주 대비 볼륨 1% 증가', icon: '📈', type: 'repeat' },
+            { id: 'volumeUpWeek3', title: '볼륨업 프로', desc: '전주 대비 볼륨 3% 증가', icon: '📈', type: 'repeat' },
+            { id: 'volumeUpWeek5', title: '볼륨업 마스터', desc: '전주 대비 볼륨 5% 증가', icon: '📈', type: 'repeat' },
+            // 반복형 업적 - 볼륨 (월)
+            { id: 'volumeUpMonth1', title: '메가볼륨', desc: '전월 대비 볼륨 1% 증가', icon: '🚀', type: 'repeat' },
+            { id: 'volumeUpMonth3', title: '메가볼륨 프로', desc: '전월 대비 볼륨 3% 증가', icon: '🚀', type: 'repeat' },
+            { id: 'volumeUpMonth5', title: '메가볼륨 마스터', desc: '전월 대비 볼륨 5% 증가', icon: '🚀', type: 'repeat' },
+            // 반복형 업적 - 무게 (주)
+            { id: 'heavyWeek1', title: '헤비급', desc: '전주 대비 무게 1% 증가', icon: '🏋️', type: 'repeat' },
+            { id: 'heavyWeek3', title: '헤비급 프로', desc: '전주 대비 무게 3% 증가', icon: '🏋️', type: 'repeat' },
+            { id: 'heavyWeek5', title: '헤비급 챔피언', desc: '전주 대비 무게 5% 증가', icon: '🏋️', type: 'repeat' },
+            // 반복형 업적 - 무게 (월)
+            { id: 'heavyMonth1', title: '슈퍼헤비급', desc: '전월 대비 무게 1% 증가', icon: '💪', type: 'repeat' },
+            { id: 'heavyMonth3', title: '슈퍼헤비급 프로', desc: '전월 대비 무게 3% 증가', icon: '💪', type: 'repeat' },
+            { id: 'heavyMonth5', title: '슈퍼헤비급 챔피언', desc: '전월 대비 무게 5% 증가', icon: '💪', type: 'repeat' },
+            // 반대 미션 - 휴식
+            { id: 'rest1week', title: '휴식도 운동이다', desc: '1주일 기록 없음', icon: '😴', type: 'repeat' },
+            { id: 'rest2week', title: '길고 긴 휴가', desc: '2주일 기록 없음', icon: '🏖️', type: 'repeat' },
+            { id: 'rest1month', title: '동면 모드', desc: '한 달 기록 없음', icon: '🐻', type: 'repeat' },
         ];
 
         // 업적 달성 데이터 초기화
@@ -2299,8 +2304,18 @@
         }
 
         function checkAchievements() {
+            if (!data.achievements) data.achievements = {};
             const allDates = getAllRecordDates();
             const totalDays = allDates.length;
+
+            // 헬퍼: 반복 업적 추가
+            function addRepeatAchievement(id, key, keyType = 'weeks') {
+                if (!data.achievements[id]) data.achievements[id] = { count: 0, [keyType]: [] };
+                if (!data.achievements[id][keyType].includes(key)) {
+                    data.achievements[id].count++;
+                    data.achievements[id][keyType].push(key);
+                }
+            }
 
             // 작심삼일극복: 처음 3일 연속
             if (!data.achievements.first3days && allDates.length >= 3) {
@@ -2331,46 +2346,32 @@
             const lastWeek = getWeekDates(toDateStr(lastWeekStart));
 
             const thisWeekDays = allDates.filter(d => thisWeek.includes(d)).length;
-            const weekKey = thisWeek[0]; // 주의 시작일을 키로 사용
+            const weekKey = thisWeek[0];
 
             // 주5일제
-            if (thisWeekDays >= 5) {
-                if (!data.achievements.week5) data.achievements.week5 = { count: 0, weeks: [] };
-                if (!data.achievements.week5.weeks.includes(weekKey)) {
-                    data.achievements.week5.count++;
-                    data.achievements.week5.weeks.push(weekKey);
-                }
-            }
+            if (thisWeekDays >= 5) addRepeatAchievement('week5', weekKey);
 
             // 체육관관장님?
-            if (thisWeekDays >= 7) {
-                if (!data.achievements.week7) data.achievements.week7 = { count: 0, weeks: [] };
-                if (!data.achievements.week7.weeks.includes(weekKey)) {
-                    data.achievements.week7.count++;
-                    data.achievements.week7.weeks.push(weekKey);
-                }
-            }
+            if (thisWeekDays >= 7) addRepeatAchievement('week7', weekKey);
 
-            // 볼륨업(주)
+            // 볼륨 (주)
             const thisWeekVol = getWeekVolume(thisWeek);
             const lastWeekVol = getWeekVolume(lastWeek);
-            if (lastWeekVol > 0 && thisWeekVol > lastWeekVol * 1.01) {
-                if (!data.achievements.volumeUpWeek) data.achievements.volumeUpWeek = { count: 0, weeks: [] };
-                if (!data.achievements.volumeUpWeek.weeks.includes(weekKey)) {
-                    data.achievements.volumeUpWeek.count++;
-                    data.achievements.volumeUpWeek.weeks.push(weekKey);
-                }
+            if (lastWeekVol > 0) {
+                const volRatio = thisWeekVol / lastWeekVol;
+                if (volRatio >= 1.01) addRepeatAchievement('volumeUpWeek1', weekKey);
+                if (volRatio >= 1.03) addRepeatAchievement('volumeUpWeek3', weekKey);
+                if (volRatio >= 1.05) addRepeatAchievement('volumeUpWeek5', weekKey);
             }
 
-            // 헤비급(주)
+            // 무게 (주)
             const thisWeekWt = getWeekWeight(thisWeek);
             const lastWeekWt = getWeekWeight(lastWeek);
-            if (lastWeekWt > 0 && thisWeekWt > lastWeekWt * 1.01) {
-                if (!data.achievements.heavyWeek) data.achievements.heavyWeek = { count: 0, weeks: [] };
-                if (!data.achievements.heavyWeek.weeks.includes(weekKey)) {
-                    data.achievements.heavyWeek.count++;
-                    data.achievements.heavyWeek.weeks.push(weekKey);
-                }
+            if (lastWeekWt > 0) {
+                const wtRatio = thisWeekWt / lastWeekWt;
+                if (wtRatio >= 1.01) addRepeatAchievement('heavyWeek1', weekKey);
+                if (wtRatio >= 1.03) addRepeatAchievement('heavyWeek3', weekKey);
+                if (wtRatio >= 1.05) addRepeatAchievement('heavyWeek5', weekKey);
             }
 
             // 월간 업적 체크
@@ -2381,26 +2382,38 @@
             const lastMonthYear = thisMonth === 0 ? thisYear - 1 : thisYear;
             const monthKey = `${thisYear}-${thisMonth}`;
 
-            // 메가볼륨 (월)
+            // 볼륨 (월)
             const thisMonthVol = getMonthVolume(thisYear, thisMonth);
             const lastMonthVol = getMonthVolume(lastMonthYear, lastMonth);
-            if (lastMonthVol > 0 && thisMonthVol > lastMonthVol * 1.01) {
-                if (!data.achievements.volumeUpMonth) data.achievements.volumeUpMonth = { count: 0, months: [] };
-                if (!data.achievements.volumeUpMonth.months.includes(monthKey)) {
-                    data.achievements.volumeUpMonth.count++;
-                    data.achievements.volumeUpMonth.months.push(monthKey);
-                }
+            if (lastMonthVol > 0) {
+                const volRatio = thisMonthVol / lastMonthVol;
+                if (volRatio >= 1.01) addRepeatAchievement('volumeUpMonth1', monthKey, 'months');
+                if (volRatio >= 1.03) addRepeatAchievement('volumeUpMonth3', monthKey, 'months');
+                if (volRatio >= 1.05) addRepeatAchievement('volumeUpMonth5', monthKey, 'months');
             }
 
-            // 슈퍼헤비급 (월)
+            // 무게 (월)
             const thisMonthWt = getMonthWeight(thisYear, thisMonth);
             const lastMonthWt = getMonthWeight(lastMonthYear, lastMonth);
-            if (lastMonthWt > 0 && thisMonthWt > lastMonthWt * 1.01) {
-                if (!data.achievements.heavyMonth) data.achievements.heavyMonth = { count: 0, months: [] };
-                if (!data.achievements.heavyMonth.months.includes(monthKey)) {
-                    data.achievements.heavyMonth.count++;
-                    data.achievements.heavyMonth.months.push(monthKey);
-                }
+            if (lastMonthWt > 0) {
+                const wtRatio = thisMonthWt / lastMonthWt;
+                if (wtRatio >= 1.01) addRepeatAchievement('heavyMonth1', monthKey, 'months');
+                if (wtRatio >= 1.03) addRepeatAchievement('heavyMonth3', monthKey, 'months');
+                if (wtRatio >= 1.05) addRepeatAchievement('heavyMonth5', monthKey, 'months');
+            }
+
+            // 휴식 업적 체크
+            if (allDates.length > 0) {
+                const lastRecordDate = parseLocalDate(allDates[allDates.length - 1]);
+                const todayDate = parseLocalDate(today);
+                const daysSinceLastRecord = Math.floor((todayDate - lastRecordDate) / (1000 * 60 * 60 * 24));
+
+                // 마지막 기록과 휴식 시작점의 키 (중복 방지)
+                const restKey = allDates[allDates.length - 1];
+
+                if (daysSinceLastRecord >= 7) addRepeatAchievement('rest1week', restKey, 'periods');
+                if (daysSinceLastRecord >= 14) addRepeatAchievement('rest2week', restKey, 'periods');
+                if (daysSinceLastRecord >= 30) addRepeatAchievement('rest1month', restKey, 'periods');
             }
 
             save();
