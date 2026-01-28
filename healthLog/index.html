@@ -62,6 +62,21 @@
             margin-bottom: 24px;
         }
         header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
+        .header-add-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #007aff;
+            color: #fff;
+            border: none;
+            font-size: 24px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .header-add-btn:active { background: #0056b3; }
         .back-btn {
             background: none;
             border: none;
@@ -417,28 +432,103 @@
         }
         .feed-set strong { font-weight: 600; }
 
-        .add-form { display: flex; gap: 10px; margin-bottom: 12px; }
-        .add-form input {
-            flex: 1;
+        .search-row { margin-bottom: 12px; }
+        .search-row input {
+            width: 100%;
             padding: 14px 16px;
             border: 1px solid #e0e0e0;
             border-radius: 12px;
             background: #fff;
             font-size: 16px;
+            box-sizing: border-box;
         }
-        .add-form input::placeholder { color: #999; }
-        .add-form button {
-            padding: 14px 22px;
+
+        /* Add Exercise Page */
+        #addExercisePage {
+            padding-bottom: 100px;
+        }
+        .add-exercise-form {
+            padding: 16px;
+        }
+        .name-color-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .color-preview-btn {
+            width: 48px;
+            height: 48px;
+            min-width: 48px;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .color-preview-btn:active { transform: scale(0.95); }
+        .name-color-row input {
+            flex: 1;
+            padding: 14px 16px;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        .color-picker-dropdown {
+            margin-bottom: 16px;
+            padding: 12px;
+            background: #f5f5f7;
+            border-radius: 12px;
+        }
+        .color-picker-dropdown.hidden { display: none; }
+        .form-group {
+            margin-bottom: 24px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            box-sizing: border-box;
+            font-family: inherit;
+            resize: none;
+        }
+        .color-picker-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+        }
+        .color-picker-grid .color-option {
+            aspect-ratio: 1;
+            border-radius: 12px;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: transform 0.1s, border-color 0.2s;
+        }
+        .color-picker-grid .color-option:active { transform: scale(0.95); }
+        .color-picker-grid .color-option.selected { border-color: #1d1d1f; }
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
             background: #007aff;
             border: none;
             border-radius: 12px;
             color: #fff;
-            font-size: 20px;
+            font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            flex-shrink: 0;
+            margin-top: 16px;
         }
-        button.color-btn { width: 48px; height: 48px; border-radius: 50%; padding: 0; flex-shrink: 0; }
+        .submit-btn:active { background: #0056b3; }
 
         .color-picker {
             background: #fff;
@@ -453,6 +543,26 @@
         .color-preset.selected { border-color: #1d1d1f; }
 
         .section-title { font-size: 13px; color: #666; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+
+        .sort-toggle {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .sort-btn {
+            padding: 8px 16px;
+            border: 1px solid #e0e0e0;
+            background: #fff;
+            border-radius: 20px;
+            font-size: 13px;
+            color: #666;
+            cursor: pointer;
+        }
+        .sort-btn.active {
+            background: #007aff;
+            border-color: #007aff;
+            color: #fff;
+        }
 
         .list { display: flex; flex-direction: column; gap: 10px; }
         .list-item {
@@ -769,10 +879,7 @@
             .timer-custom input { padding: 12px 8px; font-size: 14px; }
             .timer-custom button { padding: 12px 14px; font-size: 14px; }
 
-            .add-form { gap: 6px; }
-            .add-form input { padding: 12px; font-size: 14px; }
-            .add-form button { padding: 12px 16px; font-size: 18px; }
-            .color-btn { width: 42px; height: 42px; }
+            .search-row input { padding: 12px; font-size: 14px; }
 
             .input-row { gap: 6px; }
             .input-row input { padding: 12px 8px; font-size: 15px; }
@@ -832,10 +939,7 @@
             .timer-btn { width: 56px; height: 56px; font-size: 12px; }
             .timer-controls { gap: 8px; }
 
-            .add-form { gap: 4px; }
-            .add-form input { padding: 10px 8px; font-size: 13px; }
-            .add-form button { padding: 10px 12px; font-size: 16px; }
-            .color-btn { width: 38px; height: 38px; }
+            .search-row input { padding: 10px 8px; font-size: 13px; }
 
             .section-title { font-size: 11px; margin-bottom: 8px; }
             .list-item { padding: 10px; border-radius: 12px; }
@@ -1032,17 +1136,40 @@
 
         <!-- Settings Tab -->
         <div id="settingsTab" class="hidden">
-            <header><h1>운동 목록</h1></header>
-            <div class="section-title">운동 목록</div>
-            <div class="add-form">
-                <button class="color-btn" id="colorBtn" style="background:#007aff"></button>
-                <input type="text" id="exerciseName" placeholder="운동 이름">
-                <button id="addExerciseBtn">+</button>
+            <header>
+                <h1>운동 설정</h1>
+                <button class="header-add-btn" id="openAddExercise">+</button>
+            </header>
+            <div class="search-row">
+                <input type="text" id="exerciseSearch" placeholder="운동 검색">
             </div>
-            <div class="color-picker hidden" id="colorPicker">
-                <div class="color-presets" id="colorPresets"></div>
+            <div class="sort-toggle" id="sortToggle">
+                <button class="sort-btn active" data-sort="registered">등록순</button>
+                <button class="sort-btn" data-sort="name">가나다순</button>
             </div>
             <div class="list" id="exerciseList"></div>
+        </div>
+    </div>
+
+    <!-- Add Exercise Page -->
+    <div id="addExercisePage" class="hidden">
+        <header>
+            <button class="back-btn" id="closeAddExercise">←</button>
+            <h1>운동 추가</h1>
+        </header>
+        <div class="add-exercise-form">
+            <div class="name-color-row">
+                <button type="button" class="color-preview-btn" id="colorPreviewBtn"></button>
+                <input type="text" id="newExerciseName" placeholder="운동 이름을 입력하세요">
+            </div>
+            <div class="color-picker-dropdown hidden" id="colorPickerDropdown">
+                <div class="color-picker-grid" id="colorPickerGrid"></div>
+            </div>
+            <div class="form-group">
+                <label>메모</label>
+                <textarea id="newExerciseMemo" placeholder="운동에 대한 설명을 입력하세요" rows="3"></textarea>
+            </div>
+            <button class="submit-btn" id="submitAddExercise">추가하기</button>
         </div>
     </div>
 
@@ -1137,6 +1264,7 @@
         let calendarMonth = new Date().getMonth();
         let currentViewMode = 'calendar';
         let pickerYear = calendarYear;
+        let exerciseSortOrder = stored.exerciseSortOrder || 'registered';
 
         function save() { localStorage.setItem(KEY, JSON.stringify(data)); }
 
@@ -1507,8 +1635,9 @@
         // Exercise List & Detail
         const mainPage = document.getElementById('mainPage');
         const detailPage = document.getElementById('detailPage');
+        const addExercisePage = document.getElementById('addExercisePage');
         const exerciseList = document.getElementById('exerciseList');
-        const exerciseNameInput = document.getElementById('exerciseName');
+        const exerciseSearchInput = document.getElementById('exerciseSearch');
         const detailTitle = document.getElementById('detailTitle');
         const setList = document.getElementById('setList');
         const dateInput = document.getElementById('dateInput');
@@ -1517,29 +1646,64 @@
         const exerciseMemo = document.getElementById('exerciseMemo');
         const exerciseMemoDisplay = document.getElementById('exerciseMemoDisplay');
         const setMemoInput = document.getElementById('setMemo');
-        const colorBtn = document.getElementById('colorBtn');
-        const colorPicker = document.getElementById('colorPicker');
-        const colorPresets = document.getElementById('colorPresets');
+        const colorPickerGrid = document.getElementById('colorPickerGrid');
+        const colorPreviewBtn = document.getElementById('colorPreviewBtn');
+        const colorPickerDropdown = document.getElementById('colorPickerDropdown');
+        const newExerciseNameInput = document.getElementById('newExerciseName');
+        const newExerciseMemoInput = document.getElementById('newExerciseMemo');
 
-        colorPresets.innerHTML = PRESET_COLORS.map(c => `<div class="color-preset" data-color="${c}" style="background:${c}"></div>`).join('');
+        // 색상 선택 그리드 초기화
+        colorPickerGrid.innerHTML = PRESET_COLORS.map(c => `<div class="color-option" data-color="${c}" style="background:${c}"></div>`).join('');
+        let newExerciseColor = '#007aff';
 
-        function selectColorFn(color) {
-            selectedColor = color;
-            colorBtn.style.background = color;
-            document.querySelectorAll('.color-preset').forEach(el => el.classList.toggle('selected', el.dataset.color === color));
+        function selectNewExerciseColor(color) {
+            newExerciseColor = color;
+            colorPreviewBtn.style.background = color;
+            document.querySelectorAll('#colorPickerGrid .color-option').forEach(el => el.classList.toggle('selected', el.dataset.color === color));
         }
 
-        colorBtn.addEventListener('click', () => colorPicker.classList.toggle('hidden'));
-        colorPresets.addEventListener('click', e => {
-            if (e.target.classList.contains('color-preset')) { selectColorFn(e.target.dataset.color); colorPicker.classList.add('hidden'); }
+        // 색상 미리보기 버튼 클릭 시 팔레트 토글
+        colorPreviewBtn.addEventListener('click', () => {
+            colorPickerDropdown.classList.toggle('hidden');
         });
 
-        function renderMain() {
+        colorPickerGrid.addEventListener('click', e => {
+            if (e.target.classList.contains('color-option')) {
+                selectNewExerciseColor(e.target.dataset.color);
+                colorPickerDropdown.classList.add('hidden');
+            }
+        });
+
+        function renderMain(searchQuery = '') {
+            // 정렬 토글 UI 업데이트
+            document.querySelectorAll('.sort-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.sort === exerciseSortOrder);
+            });
+
             if (data.exercises.length === 0) {
                 exerciseList.innerHTML = '<div class="empty">운동을 추가하세요</div>';
                 return;
             }
-            exerciseList.innerHTML = data.exercises.map(name => {
+
+            // 검색 필터 적용
+            let filteredExercises = data.exercises;
+            if (searchQuery) {
+                const query = searchQuery.toLowerCase();
+                filteredExercises = data.exercises.filter(name => name.toLowerCase().includes(query));
+            }
+
+            // 정렬 적용
+            let sortedExercises = [...filteredExercises];
+            if (exerciseSortOrder === 'name') {
+                sortedExercises.sort((a, b) => a.localeCompare(b, 'ko'));
+            }
+
+            if (sortedExercises.length === 0) {
+                exerciseList.innerHTML = '<div class="empty">검색 결과가 없습니다</div>';
+                return;
+            }
+
+            exerciseList.innerHTML = sortedExercises.map(name => {
                 const records = data.records[name] || [];
                 const todayCount = records.filter(r => r.d === today).length;
                 const color = data.colors[name] || '#007aff';
@@ -1562,6 +1726,17 @@
                 `;
             }).join('');
         }
+
+        // 정렬 토글 이벤트
+        document.getElementById('sortToggle').addEventListener('click', e => {
+            const btn = e.target.closest('.sort-btn');
+            if (btn && btn.dataset.sort !== exerciseSortOrder) {
+                exerciseSortOrder = btn.dataset.sort;
+                stored.exerciseSortOrder = exerciseSortOrder;
+                localStorage.setItem(KEY, JSON.stringify({ ...data, exerciseSortOrder }));
+                renderMain();
+            }
+        });
 
         function renderDetail(filterDate = null) {
             const records = data.records[currentExercise] || [];
@@ -1602,6 +1777,7 @@
         function showMain() {
             mainPage.classList.remove('hidden');
             detailPage.classList.add('hidden');
+            addExercisePage.classList.add('hidden');
             currentExercise = null;
             renderMain();
             currentViewMode === 'calendar' ? renderCalendar() : renderFeedView();
@@ -1612,6 +1788,7 @@
             detailTitle.textContent = name;
             mainPage.classList.add('hidden');
             detailPage.classList.remove('hidden');
+            addExercisePage.classList.add('hidden');
             dayDetail.classList.add('hidden');
 
             const memo = data.memos[name] || '';
@@ -1644,21 +1821,53 @@
             }
         });
 
+        // 운동 추가 페이지 열기
+        function openAddExercisePage() {
+            newExerciseNameInput.value = '';
+            newExerciseMemoInput.value = '';
+            newExerciseColor = '#007aff';
+            selectNewExerciseColor(newExerciseColor);
+            colorPickerDropdown.classList.add('hidden');
+            tabs.settings.classList.add('hidden');
+            addExercisePage.classList.remove('hidden');
+        }
+
+        // 운동 추가 페이지 닫기
+        function closeAddExercisePage() {
+            addExercisePage.classList.add('hidden');
+            tabs.settings.classList.remove('hidden');
+        }
+
+        // 운동 추가 실행
         function addExercise() {
-            const name = exerciseNameInput.value.trim();
-            if (!name || data.exercises.includes(name)) return;
+            const name = newExerciseNameInput.value.trim();
+            if (!name) {
+                alert('운동 이름을 입력하세요');
+                return;
+            }
+            if (data.exercises.includes(name)) {
+                alert('이미 존재하는 운동입니다');
+                return;
+            }
             data.exercises.push(name);
-            data.colors[name] = selectedColor;
+            data.colors[name] = newExerciseColor;
             data.records[name] = [];
+            data.memos[name] = newExerciseMemoInput.value.trim();
             save();
             renderMain();
             currentViewMode === 'calendar' ? renderCalendar() : renderFeedView();
-            exerciseNameInput.value = '';
-            colorPicker.classList.add('hidden');
+            closeAddExercisePage();
         }
 
-        document.getElementById('addExerciseBtn').addEventListener('click', addExercise);
-        exerciseNameInput.addEventListener('keydown', e => { if (e.key === 'Enter') addExercise(); });
+        document.getElementById('openAddExercise').addEventListener('click', openAddExercisePage);
+        document.getElementById('closeAddExercise').addEventListener('click', closeAddExercisePage);
+        document.getElementById('submitAddExercise').addEventListener('click', addExercise);
+        newExerciseNameInput.addEventListener('keydown', e => { if (e.key === 'Enter') addExercise(); });
+
+        // 검색 기능
+        exerciseSearchInput.addEventListener('input', e => {
+            renderMain(e.target.value);
+        });
 
         exerciseList.addEventListener('click', e => {
             if (e.target.classList.contains('delete-btn')) {
