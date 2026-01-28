@@ -619,6 +619,89 @@
         .line-labels { display: flex; justify-content: space-between; position: absolute; bottom: 0; left: 0; right: 0; }
         .line-label { font-size: 10px; color: #888; }
 
+        /* Achievement */
+        .achievement-summary {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 16px;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+        .achievement-stat {
+            text-align: center;
+        }
+        .achievement-stat-value {
+            font-size: 28px;
+            font-weight: 700;
+        }
+        .achievement-stat-label {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        .achievement-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .achievement-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 16px;
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .achievement-item.locked {
+            opacity: 0.5;
+            filter: grayscale(1);
+        }
+        .achievement-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
+            flex-shrink: 0;
+        }
+        .achievement-item.locked .achievement-icon {
+            background: #e0e0e0;
+        }
+        .achievement-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .achievement-title {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 2px;
+        }
+        .achievement-desc {
+            font-size: 13px;
+            color: #666;
+        }
+        .achievement-count {
+            font-size: 14px;
+            font-weight: 600;
+            color: #007aff;
+            background: #e8f4ff;
+            padding: 4px 10px;
+            border-radius: 12px;
+        }
+        .achievement-item.locked .achievement-count {
+            display: none;
+        }
+        .achievement-check {
+            color: #34c759;
+            font-size: 20px;
+        }
+
         /* Timer */
         .timer-display { text-align: center; padding: 40px 20px; }
         .timer-time { font-size: 80px; font-weight: 200; font-variant-numeric: tabular-nums; line-height: 1; margin-bottom: 10px; }
@@ -934,6 +1017,13 @@
             </div>
         </div>
 
+        <!-- Achievement Tab -->
+        <div id="achievementTab" class="hidden">
+            <header><h1>업적</h1></header>
+            <div class="achievement-summary" id="achievementSummary"></div>
+            <div class="achievement-list" id="achievementList"></div>
+        </div>
+
         <!-- Settings Tab -->
         <div id="settingsTab" class="hidden">
             <header><h1>운동 목록</h1></header>
@@ -989,6 +1079,14 @@
                 <path d="M12 6v6l4 2"/>
             </svg>
             <span>타이머</span>
+        </button>
+        <button class="tab-item" data-tab="achievement">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="8" r="6"/>
+                <path d="M12 14v6M9 20h6"/>
+                <path d="M9 2l1.5 2L12 2l1.5 2L15 2"/>
+            </svg>
+            <span>업적</span>
         </button>
         <button class="tab-item" data-tab="settings">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1051,7 +1149,7 @@
         }
 
         // Tab Navigation
-        const tabs = { record: document.getElementById('recordTab'), chart: document.getElementById('chartTab'), timer: document.getElementById('timerTab'), settings: document.getElementById('settingsTab') };
+        const tabs = { record: document.getElementById('recordTab'), chart: document.getElementById('chartTab'), timer: document.getElementById('timerTab'), achievement: document.getElementById('achievementTab'), settings: document.getElementById('settingsTab') };
         const tabButtons = document.querySelectorAll('.tab-item');
 
         function switchTab(tabName) {
@@ -1061,6 +1159,7 @@
             if (tabName === 'chart') updateChartSelect();
             if (tabName === 'record') currentViewMode === 'calendar' ? renderCalendar() : renderFeedView();
             if (tabName === 'settings') renderMain();
+            if (tabName === 'achievement') renderAchievements();
         }
         tabButtons.forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
 
@@ -2048,6 +2147,11 @@
                 Object.values(tabs).forEach(t => t.classList.add('hidden'));
                 tabs.timer.classList.remove('hidden');
                 tabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === 'timer'));
+            } else if (route === 'achievement') {
+                Object.values(tabs).forEach(t => t.classList.add('hidden'));
+                tabs.achievement.classList.remove('hidden');
+                tabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === 'achievement'));
+                renderAchievements();
             } else if (route === 'settings') {
                 Object.values(tabs).forEach(t => t.classList.add('hidden'));
                 tabs.settings.classList.remove('hidden');
@@ -2107,6 +2211,243 @@
         document.getElementById('backBtn').onclick = () => {
             history.back();
         };
+
+        // ==================== 업적 시스템 ====================
+        const ACHIEVEMENTS = [
+            // 일회성 업적
+            { id: 'first3days', title: '작심삼일극복', desc: '앱 등록 후 연속 3일 기록', icon: '🔥', type: 'once' },
+            { id: 'total50', title: '오십보백보', desc: '총 50일 기록 달성', icon: '👟', type: 'once' },
+            { id: 'total100', title: '백일장', desc: '총 100일 기록 달성', icon: '💯', type: 'once' },
+            // 반복형 업적
+            { id: 'week5', title: '주5일제', desc: '한 주에 5일 운동', icon: '📅', type: 'repeat' },
+            { id: 'week7', title: '체육관관장님?', desc: '한 주에 7일 운동', icon: '🏆', type: 'repeat' },
+            { id: 'volumeUpWeek', title: '볼륨업(주)', desc: '전주 대비 볼륨 1% 증가', icon: '📈', type: 'repeat' },
+            { id: 'volumeUpMonth', title: '메가볼륨', desc: '전월 대비 볼륨 1% 증가', icon: '🚀', type: 'repeat' },
+            { id: 'heavyWeek', title: '헤비급(주)', desc: '전주 대비 무게 1% 증가', icon: '🏋️', type: 'repeat' },
+            { id: 'heavyMonth', title: '슈퍼헤비급', desc: '전월 대비 무게 1% 증가', icon: '💪', type: 'repeat' },
+        ];
+
+        // 업적 달성 데이터 초기화
+        if (!data.achievements) data.achievements = {};
+
+        function getAllRecordDates() {
+            const dates = new Set();
+            for (const exercise of data.exercises) {
+                (data.records[exercise] || []).forEach(r => dates.add(r.d));
+            }
+            return [...dates].sort();
+        }
+
+        function getWeekDates(date) {
+            const d = parseLocalDate(date);
+            const day = d.getDay();
+            const start = new Date(d);
+            start.setDate(d.getDate() - day);
+            const dates = [];
+            for (let i = 0; i < 7; i++) {
+                const curr = new Date(start);
+                curr.setDate(start.getDate() + i);
+                dates.push(toDateStr(curr));
+            }
+            return dates;
+        }
+
+        function getWeekVolume(weekDates) {
+            let total = 0;
+            for (const exercise of data.exercises) {
+                (data.records[exercise] || []).forEach(r => {
+                    if (weekDates.includes(r.d)) total += (r.w || 0) * (r.r || 0);
+                });
+            }
+            return total;
+        }
+
+        function getWeekWeight(weekDates) {
+            let total = 0, count = 0;
+            for (const exercise of data.exercises) {
+                (data.records[exercise] || []).forEach(r => {
+                    if (weekDates.includes(r.d) && r.w > 0) { total += r.w; count++; }
+                });
+            }
+            return count > 0 ? total / count : 0;
+        }
+
+        function getMonthVolume(year, month) {
+            let total = 0;
+            for (const exercise of data.exercises) {
+                (data.records[exercise] || []).forEach(r => {
+                    const d = parseLocalDate(r.d);
+                    if (d.getFullYear() === year && d.getMonth() === month) {
+                        total += (r.w || 0) * (r.r || 0);
+                    }
+                });
+            }
+            return total;
+        }
+
+        function getMonthWeight(year, month) {
+            let total = 0, count = 0;
+            for (const exercise of data.exercises) {
+                (data.records[exercise] || []).forEach(r => {
+                    const d = parseLocalDate(r.d);
+                    if (d.getFullYear() === year && d.getMonth() === month && r.w > 0) {
+                        total += r.w; count++;
+                    }
+                });
+            }
+            return count > 0 ? total / count : 0;
+        }
+
+        function checkAchievements() {
+            const allDates = getAllRecordDates();
+            const totalDays = allDates.length;
+
+            // 작심삼일극복: 처음 3일 연속
+            if (!data.achievements.first3days && allDates.length >= 3) {
+                let consecutive = true;
+                for (let i = 1; i < 3; i++) {
+                    const prev = parseLocalDate(allDates[i-1]);
+                    const curr = parseLocalDate(allDates[i]);
+                    const diff = (curr - prev) / (1000 * 60 * 60 * 24);
+                    if (diff !== 1) { consecutive = false; break; }
+                }
+                if (consecutive) data.achievements.first3days = { count: 1, date: today };
+            }
+
+            // 오십보백보: 50일 기록
+            if (!data.achievements.total50 && totalDays >= 50) {
+                data.achievements.total50 = { count: 1, date: today };
+            }
+
+            // 백일장: 100일 기록
+            if (!data.achievements.total100 && totalDays >= 100) {
+                data.achievements.total100 = { count: 1, date: today };
+            }
+
+            // 주간 업적 체크 (현재 주 기준)
+            const thisWeek = getWeekDates(today);
+            const lastWeekStart = new Date(parseLocalDate(today));
+            lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+            const lastWeek = getWeekDates(toDateStr(lastWeekStart));
+
+            const thisWeekDays = allDates.filter(d => thisWeek.includes(d)).length;
+            const weekKey = thisWeek[0]; // 주의 시작일을 키로 사용
+
+            // 주5일제
+            if (thisWeekDays >= 5) {
+                if (!data.achievements.week5) data.achievements.week5 = { count: 0, weeks: [] };
+                if (!data.achievements.week5.weeks.includes(weekKey)) {
+                    data.achievements.week5.count++;
+                    data.achievements.week5.weeks.push(weekKey);
+                }
+            }
+
+            // 체육관관장님?
+            if (thisWeekDays >= 7) {
+                if (!data.achievements.week7) data.achievements.week7 = { count: 0, weeks: [] };
+                if (!data.achievements.week7.weeks.includes(weekKey)) {
+                    data.achievements.week7.count++;
+                    data.achievements.week7.weeks.push(weekKey);
+                }
+            }
+
+            // 볼륨업(주)
+            const thisWeekVol = getWeekVolume(thisWeek);
+            const lastWeekVol = getWeekVolume(lastWeek);
+            if (lastWeekVol > 0 && thisWeekVol > lastWeekVol * 1.01) {
+                if (!data.achievements.volumeUpWeek) data.achievements.volumeUpWeek = { count: 0, weeks: [] };
+                if (!data.achievements.volumeUpWeek.weeks.includes(weekKey)) {
+                    data.achievements.volumeUpWeek.count++;
+                    data.achievements.volumeUpWeek.weeks.push(weekKey);
+                }
+            }
+
+            // 헤비급(주)
+            const thisWeekWt = getWeekWeight(thisWeek);
+            const lastWeekWt = getWeekWeight(lastWeek);
+            if (lastWeekWt > 0 && thisWeekWt > lastWeekWt * 1.01) {
+                if (!data.achievements.heavyWeek) data.achievements.heavyWeek = { count: 0, weeks: [] };
+                if (!data.achievements.heavyWeek.weeks.includes(weekKey)) {
+                    data.achievements.heavyWeek.count++;
+                    data.achievements.heavyWeek.weeks.push(weekKey);
+                }
+            }
+
+            // 월간 업적 체크
+            const now = new Date();
+            const thisMonth = now.getMonth();
+            const thisYear = now.getFullYear();
+            const lastMonth = thisMonth === 0 ? 11 : thisMonth - 1;
+            const lastMonthYear = thisMonth === 0 ? thisYear - 1 : thisYear;
+            const monthKey = `${thisYear}-${thisMonth}`;
+
+            // 메가볼륨 (월)
+            const thisMonthVol = getMonthVolume(thisYear, thisMonth);
+            const lastMonthVol = getMonthVolume(lastMonthYear, lastMonth);
+            if (lastMonthVol > 0 && thisMonthVol > lastMonthVol * 1.01) {
+                if (!data.achievements.volumeUpMonth) data.achievements.volumeUpMonth = { count: 0, months: [] };
+                if (!data.achievements.volumeUpMonth.months.includes(monthKey)) {
+                    data.achievements.volumeUpMonth.count++;
+                    data.achievements.volumeUpMonth.months.push(monthKey);
+                }
+            }
+
+            // 슈퍼헤비급 (월)
+            const thisMonthWt = getMonthWeight(thisYear, thisMonth);
+            const lastMonthWt = getMonthWeight(lastMonthYear, lastMonth);
+            if (lastMonthWt > 0 && thisMonthWt > lastMonthWt * 1.01) {
+                if (!data.achievements.heavyMonth) data.achievements.heavyMonth = { count: 0, months: [] };
+                if (!data.achievements.heavyMonth.months.includes(monthKey)) {
+                    data.achievements.heavyMonth.count++;
+                    data.achievements.heavyMonth.months.push(monthKey);
+                }
+            }
+
+            save();
+        }
+
+        function renderAchievements() {
+            checkAchievements();
+
+            const achieved = ACHIEVEMENTS.filter(a => data.achievements[a.id]);
+            const locked = ACHIEVEMENTS.filter(a => !data.achievements[a.id]);
+            const totalCount = achieved.reduce((sum, a) => sum + (data.achievements[a.id]?.count || 0), 0);
+
+            document.getElementById('achievementSummary').innerHTML = `
+                <div class="achievement-stat">
+                    <div class="achievement-stat-value">${achieved.length}</div>
+                    <div class="achievement-stat-label">달성 업적</div>
+                </div>
+                <div class="achievement-stat">
+                    <div class="achievement-stat-value">${totalCount}</div>
+                    <div class="achievement-stat-label">총 달성 횟수</div>
+                </div>
+                <div class="achievement-stat">
+                    <div class="achievement-stat-value">${getAllRecordDates().length}</div>
+                    <div class="achievement-stat-label">총 기록일</div>
+                </div>
+            `;
+
+            const list = document.getElementById('achievementList');
+            list.innerHTML = [...achieved, ...locked].map(a => {
+                const data_a = data.achievements[a.id];
+                const isLocked = !data_a;
+                const count = data_a?.count || 0;
+                return `
+                    <div class="achievement-item ${isLocked ? 'locked' : ''}">
+                        <div class="achievement-icon">${a.icon}</div>
+                        <div class="achievement-info">
+                            <div class="achievement-title">${a.title}</div>
+                            <div class="achievement-desc">${a.desc}</div>
+                        </div>
+                        ${!isLocked && a.type === 'repeat' ? `<div class="achievement-count">×${count}</div>` : ''}
+                        ${!isLocked && a.type === 'once' ? '<span class="achievement-check">✓</span>' : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ==================== 업적 시스템 끝 ====================
 
         // INIT - 테스트 데이터 강제 생성
         function generateTestData() {
