@@ -1,0 +1,1536 @@
+const KEY = 'healthLog';
+const today = new Date().toLocaleDateString('sv-SE');
+const PRESET_COLORS = [
+    // 레드/핑크
+    '#ff6b6b', '#fa5252', '#e64980', '#f06595', '#ff8787',
+    // 퍼플/바이올렛
+    '#cc5de8', '#be4bdb', '#845ef7', '#7950f2', '#9775fa',
+    // 블루
+    '#5c7cfa', '#4c6ef5', '#339af0', '#228be6', '#74c0fc',
+    // 시안/틸
+    '#22b8cf', '#15aabf', '#3bc9db', '#66d9e8', '#99e9f2',
+    // 그린
+    '#20c997', '#12b886', '#51cf66', '#40c057', '#8ce99a',
+    // 라임/옐로우
+    '#94d82d', '#82c91e', '#fab005', '#fcc419', '#ffe066',
+    // 오렌지
+    '#ff922b', '#fd7e14', '#f76707', '#e8590c', '#ffa94d',
+    // 그레이
+    '#868e96', '#495057', '#343a40', '#adb5bd', '#dee2e6'
+];
+
+let stored = JSON.parse(localStorage.getItem(KEY) || '{}');
+let data = (stored.exercises && stored.records)
+    ? { ...stored, colors: stored.colors || {}, memos: stored.memos || {}, achievements: stored.achievements || {} }
+    : { exercises: [], colors: {}, memos: {}, records: {}, achievements: {} };
+let currentExercise = null;
+let selectedColor = '#007aff';
+let selectedDate = today;
+let calendarYear = new Date().getFullYear();
+let calendarMonth = new Date().getMonth();
+let currentViewMode = 'calendar';
+let pickerYear = calendarYear;
+let exerciseSortOrder = stored.exerciseSortOrder || 'registered';
+
+function save() { localStorage.setItem(KEY, JSON.stringify(data)); }
+
+// 로컬 시간대로 날짜 파싱 (UTC 오프셋 문제 해결)
+function parseLocalDate(dateStr) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return new Date(y, m - 1, d);
+}
+
+// 로컬 날짜를 YYYY-MM-DD 문자열로 변환 (UTC 문제 방지)
+function toDateStr(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
+// Tab Navigation
+const tabs = { record: document.getElementById('recordTab'), chart: document.getElementById('chartTab'), timer: document.getElementById('timerTab'), achievement: document.getElementById('achievementTab'), settings: document.getElementById('settingsTab') };
+const tabButtons = document.querySelectorAll('.tab-item');
+
+function switchTab(tabName) {
+    Object.values(tabs).forEach(t => t.classList.add('hidden'));
+    tabs[tabName].classList.remove('hidden');
+    tabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tabName));
+    if (tabName === 'chart') updateChartSelect();
+    if (tabName === 'record') currentViewMode === 'calendar' ? renderCalendar() : renderFeedView();
+    if (tabName === 'settings') renderMain();
+    if (tabName === 'achievement') renderAchievements();
+}
+tabButtons.forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+
+// View Mode Toggle
+const calendarViewBtn = document.getElementById('calendarViewBtn');
+const listViewBtn = document.getElementById('listViewBtn');
+const calendarView = document.getElementById('calendarView');
+const listView = document.getElementById('listView');
+
+function setViewMode(mode) {
+    currentViewMode = mode;
+    calendarViewBtn.classList.toggle('active', mode === 'calendar');
+    listViewBtn.classList.toggle('active', mode === 'list');
+    calendarView.classList.toggle('hidden', mode !== 'calendar');
+    listView.classList.toggle('hidden', mode !== 'list');
+    mode === 'calendar' ? renderCalendar() : renderFeedView();
+}
+calendarViewBtn.addEventListener('click', () => setViewMode('calendar'));
+listViewBtn.addEventListener('click', () => setViewMode('list'));
+
+// Calendar Touch Gesture
+const calendarContainer = document.getElementById('calendarContainer');
+let touchStartX = 0, touchEndX = 0;
+
+calendarContainer.addEventListener('touchstart', e => {
+    touchStartX = e.touches[0].clientX;
+    touchEndX = touchStartX;
+}, { passive: true });
+
+calendarContainer.addEventListener('touchmove', e => {
+    touchEndX = e.touches[0].clientX;
+}, { passive: true });
+
+calendarContainer.addEventListener('touchend', () => {
+    const diff = touchEndX - touchStartX;
+    if (diff > 50) {
+        // 오른쪽 스와이프 → 이전 월
+        calendarMonth--;
+        if (calendarMonth < 0) { calendarMonth = 11; calendarYear--; }
+        renderCalendar();
+    } else if (diff < -50) {
+        // 왼쪽 스와이프 → 다음 월
+        calendarMonth++;
+        if (calendarMonth > 11) { calendarMonth = 0; calendarYear++; }
+        renderCalendar();
+    }
+});
+
+// Month Picker
+const monthPickerModal = document.getElementById('monthPickerModal');
+const calendarTitleBtn = document.getElementById('calendarTitleBtn');
+const pickerYearEl = document.getElementById('pickerYear');
+const monthGrid = document.getElementById('monthGrid');
+
+calendarTitleBtn.addEventListener('click', () => {
+    pickerYear = calendarYear;
+    renderMonthPicker();
+    monthPickerModal.classList.add('show');
+});
+
+document.getElementById('closeMonthPicker').addEventListener('click', () => monthPickerModal.classList.remove('show'));
+monthPickerModal.addEventListener('click', e => { if (e.target === monthPickerModal) monthPickerModal.classList.remove('show'); });
+
+document.getElementById('prevYear').addEventListener('click', () => { pickerYear--; renderMonthPicker(); });
+document.getElementById('nextYear').addEventListener('click', () => { pickerYear++; renderMonthPicker(); });
+
+function renderMonthPicker() {
+    pickerYearEl.textContent = pickerYear + '년';
+    const months = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+    monthGrid.innerHTML = months.map((m, i) => {
+        const isCurrent = pickerYear === calendarYear && i === calendarMonth;
+        return `<button class="month-btn ${isCurrent ? 'current' : ''}" data-month="${i}">${m}</button>`;
+    }).join('');
+}
+
+monthGrid.addEventListener('click', e => {
+    if (e.target.classList.contains('month-btn')) {
+        calendarYear = pickerYear;
+        calendarMonth = parseInt(e.target.dataset.month);
+        monthPickerModal.classList.remove('show');
+        renderCalendar();
+    }
+});
+
+// Calendar Rendering
+const calendarDays = document.getElementById('calendarDays');
+const dayDetail = document.getElementById('dayDetail');
+const dayDetailTitle = document.getElementById('dayDetailTitle');
+const dayExercises = document.getElementById('dayExercises');
+
+function getExercisesForDate(dateStr) {
+    const result = [];
+    for (const exercise of data.exercises) {
+        const records = data.records[exercise] || [];
+        const dayRecords = records.filter(r => r.d === dateStr);
+        if (dayRecords.length > 0) {
+            result.push({
+                name: exercise,
+                color: data.colors[exercise] || '#007aff',
+                memo: data.memos[exercise] || '',
+                sets: dayRecords.length,
+                records: dayRecords
+            });
+        }
+    }
+    return result;
+}
+
+function getExerciseColorsForDate(dateStr) {
+    const colors = [];
+    for (const exercise of data.exercises) {
+        const records = data.records[exercise] || [];
+        if (records.some(r => r.d === dateStr)) colors.push(data.colors[exercise] || '#007aff');
+    }
+    return colors.slice(0, 4);
+}
+
+function renderMonthDays(year, month, container) {
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startDay = firstDay.getDay();
+    const totalDays = lastDay.getDate();
+    const prevLastDay = new Date(year, month, 0).getDate();
+
+    let html = '';
+    for (let i = startDay - 1; i >= 0; i--) {
+        const day = prevLastDay - i;
+        const date = new Date(year, month - 1, day);
+        const dateStr = date.toLocaleDateString('sv-SE');
+        const colors = getExerciseColorsForDate(dateStr);
+        const dayOfWeek = (startDay - 1 - i) % 7;
+        let classes = 'calendar-day other-month';
+        if (dayOfWeek === 0) classes += ' sunday';
+        if (dayOfWeek === 6) classes += ' saturday';
+        html += `<button class="${classes}" data-date="${dateStr}"><span class="day-number">${day}</span><div class="exercise-dots">${colors.map(c => `<span class="exercise-dot" style="background:${c}"></span>`).join('')}</div></button>`;
+    }
+
+    for (let day = 1; day <= totalDays; day++) {
+        const date = new Date(year, month, day);
+        const dateStr = date.toLocaleDateString('sv-SE');
+        const colors = getExerciseColorsForDate(dateStr);
+        const dayOfWeek = date.getDay();
+        let classes = 'calendar-day';
+        if (dateStr === today) classes += ' today';
+        if (dateStr === selectedDate) classes += ' selected';
+        if (dayOfWeek === 0) classes += ' sunday';
+        if (dayOfWeek === 6) classes += ' saturday';
+        html += `<button class="${classes}" data-date="${dateStr}"><span class="day-number">${day}</span><div class="exercise-dots">${colors.map(c => `<span class="exercise-dot" style="background:${c}"></span>`).join('')}</div></button>`;
+    }
+
+    // 필요한 줄 수만큼만 렌더링 (4~6줄)
+    const totalCells = startDay + totalDays;
+    const neededRows = Math.ceil(totalCells / 7);
+    const remaining = (neededRows * 7) - totalCells;
+    for (let day = 1; day <= remaining; day++) {
+        const date = new Date(year, month + 1, day);
+        const dateStr = date.toLocaleDateString('sv-SE');
+        const colors = getExerciseColorsForDate(dateStr);
+        const dayOfWeek = (startDay + totalDays + day - 1) % 7;
+        let classes = 'calendar-day other-month';
+        if (dayOfWeek === 0) classes += ' sunday';
+        if (dayOfWeek === 6) classes += ' saturday';
+        html += `<button class="${classes}" data-date="${dateStr}"><span class="day-number">${day}</span><div class="exercise-dots">${colors.map(c => `<span class="exercise-dot" style="background:${c}"></span>`).join('')}</div></button>`;
+    }
+
+    container.innerHTML = html;
+}
+
+function renderCalendar() {
+    calendarTitleBtn.textContent = `${calendarYear}년 ${calendarMonth + 1}월`;
+    renderMonthDays(calendarYear, calendarMonth, calendarDays);
+}
+
+function showDayDetail(dateStr) {
+    selectedDate = dateStr;
+    const date = parseLocalDate(dateStr);
+    dayDetailTitle.textContent = dateStr === today ? '오늘 기록' : `${date.getMonth() + 1}월 ${date.getDate()}일 기록`;
+
+    const exercises = getExercisesForDate(dateStr);
+    if (exercises.length === 0) {
+        dayExercises.innerHTML = '<div class="empty" style="padding:20px">기록이 없습니다</div>';
+    } else {
+        dayExercises.innerHTML = exercises.map(ex => `
+            <div class="day-exercise-item" data-exercise="${ex.name}">
+                <span class="color-dot" style="background:${ex.color}"></span>
+                <div class="exercise-info">
+                    <div class="exercise-name">${ex.name}</div>
+                    <div class="exercise-sets">${ex.sets}세트</div>
+                    ${ex.memo ? `<div class="exercise-memo">${ex.memo}</div>` : ''}
+                </div>
+                <span class="arrow">›</span>
+                <button class="delete-btn" data-delete="${ex.name}">×</button>
+            </div>
+        `).join('');
+    }
+    dayDetail.classList.remove('hidden');
+    renderCalendar();
+}
+
+document.getElementById('prevMonth').addEventListener('click', () => {
+    calendarMonth--;
+    if (calendarMonth < 0) { calendarMonth = 11; calendarYear--; }
+    renderCalendar();
+});
+document.getElementById('nextMonth').addEventListener('click', () => {
+    calendarMonth++;
+    if (calendarMonth > 11) { calendarMonth = 0; calendarYear++; }
+    renderCalendar();
+});
+document.getElementById('todayBtn').addEventListener('click', () => {
+    const now = new Date();
+    calendarYear = now.getFullYear();
+    calendarMonth = now.getMonth();
+    selectedDate = today;
+    dayDetail.classList.add('hidden');
+    renderCalendar();
+});
+
+calendarDays.addEventListener('click', e => {
+    const dayBtn = e.target.closest('.calendar-day');
+    if (dayBtn) showDayDetail(dayBtn.dataset.date);
+});
+
+document.getElementById('closeDayDetail').addEventListener('click', () => {
+    clearAllForDate(selectedDate);
+});
+document.getElementById('dayAddBtn').addEventListener('click', () => switchTab('settings'));
+
+// 해당 날짜의 특정 운동 기록 삭제
+function deleteExerciseForDate(exerciseName, dateStr) {
+    const date = parseLocalDate(dateStr);
+    const dateLabel = `${date.getMonth() + 1}월 ${date.getDate()}일`;
+    if (!confirm(`"${exerciseName}" ${dateLabel} 기록을 삭제할까요?`)) return;
+    if (data.records[exerciseName]) {
+        data.records[exerciseName] = data.records[exerciseName].filter(r => r.d !== dateStr);
+        save();
+        showDayDetail(dateStr);
+    }
+}
+
+// 해당 날짜의 모든 운동 기록 삭제
+function clearAllForDate(dateStr) {
+    const date = parseLocalDate(dateStr);
+    const dateLabel = dateStr === today ? '오늘' : `${date.getMonth() + 1}월 ${date.getDate()}일`;
+    if (!confirm(`${dateLabel}의 모든 운동 기록을 삭제할까요?\n(${getExercisesForDate(dateStr).map(e => e.name).join(', ')})`)) return;
+    for (const exercise of data.exercises) {
+        if (data.records[exercise]) {
+            data.records[exercise] = data.records[exercise].filter(r => r.d !== dateStr);
+        }
+    }
+    save();
+    showDayDetail(dateStr);
+}
+
+dayExercises.addEventListener('click', e => {
+    // 삭제 버튼 클릭
+    const deleteBtn = e.target.closest('.delete-btn');
+    if (deleteBtn) {
+        e.stopPropagation();
+        deleteExerciseForDate(deleteBtn.dataset.delete, selectedDate);
+        return;
+    }
+    const item = e.target.closest('.day-exercise-item');
+    if (item) showDetail(item.dataset.exercise, selectedDate);
+});
+// Feed View
+const feedView = document.getElementById('feedView');
+
+function getAllRecordDates() {
+    const dates = new Set();
+    for (const exercise of data.exercises) {
+        (data.records[exercise] || []).forEach(r => dates.add(r.d));
+    }
+    return Array.from(dates).sort().reverse();
+}
+
+function formatDateKorean(dateStr) {
+    const d = parseLocalDate(dateStr);
+    const days = ['일', '월', '화', '수', '목', '금', '토'];
+    return `${d.getMonth() + 1}월 ${d.getDate()}일 (${days[d.getDay()]})`;
+}
+
+function renderFeedView() {
+    const dates = getAllRecordDates();
+    const addTodayBtn = `
+        <div class="feed-add-today">
+            <button class="feed-add-today-btn" data-date="${today}">+ 기록 추가</button>
+        </div>
+    `;
+    if (dates.length === 0) {
+        feedView.innerHTML = addTodayBtn + '<div class="empty">기록이 없습니다</div>';
+        return;
+    }
+    feedView.innerHTML = addTodayBtn + dates.map(dateStr => {
+        const exercises = getExercisesForDate(dateStr);
+        const isToday = dateStr === today;
+        return `
+            <div class="feed-day">
+                <div class="feed-day-header">
+                    <span class="feed-day-date ${isToday ? 'today' : ''}">${isToday ? '오늘' : formatDateKorean(dateStr)}</span>
+                    <button class="feed-day-add" data-date="${dateStr}">+</button>
+                </div>
+                <div class="feed-exercises">
+                    ${exercises.map(ex => `
+                        <div class="feed-exercise" style="border-left-color: ${ex.color}" data-exercise="${ex.name}" data-date="${dateStr}">
+                            <div class="feed-exercise-header">
+                                <span class="feed-exercise-color" style="background: ${ex.color}"></span>
+                                <span class="feed-exercise-name">${ex.name}</span>
+                            </div>
+                            ${ex.memo ? `<div class="feed-exercise-memo">${ex.memo}</div>` : ''}
+                            <div class="feed-sets">
+                                ${ex.records.map(r => `<span class="feed-set"><strong>${r.w}kg</strong> × ${r.r}${r.m ? ` (${r.m})` : ''}</span>`).join('')}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+feedView.addEventListener('click', e => {
+    const addTodayBtn = e.target.closest('.feed-add-today-btn');
+    if (addTodayBtn) {
+        selectedDate = addTodayBtn.dataset.date;
+        switchTab('settings');
+        return;
+    }
+    const addBtn = e.target.closest('.feed-day-add');
+    if (addBtn) {
+        selectedDate = addBtn.dataset.date;
+        switchTab('settings');
+        return;
+    }
+    const exerciseEl = e.target.closest('.feed-exercise');
+    if (exerciseEl) showDetail(exerciseEl.dataset.exercise, exerciseEl.dataset.date);
+});
+
+// Exercise List & Detail
+const mainPage = document.getElementById('mainPage');
+const detailPage = document.getElementById('detailPage');
+const addExercisePage = document.getElementById('addExercisePage');
+const exerciseList = document.getElementById('exerciseList');
+const exerciseSearchInput = document.getElementById('exerciseSearch');
+const detailTitle = document.getElementById('detailTitle');
+const setList = document.getElementById('setList');
+const dateInput = document.getElementById('dateInput');
+const weightInput = document.getElementById('weightInput');
+const repsInput = document.getElementById('repsInput');
+const exerciseMemo = document.getElementById('exerciseMemo');
+const exerciseMemoDisplay = document.getElementById('exerciseMemoDisplay');
+const setMemoInput = document.getElementById('setMemo');
+const colorPickerGrid = document.getElementById('colorPickerGrid');
+const colorPreviewBtn = document.getElementById('colorPreviewBtn');
+const colorPickerDropdown = document.getElementById('colorPickerDropdown');
+const newExerciseNameInput = document.getElementById('newExerciseName');
+const newExerciseMemoInput = document.getElementById('newExerciseMemo');
+
+// 색상 선택 그리드 초기화
+colorPickerGrid.innerHTML = PRESET_COLORS.map(c => `<div class="color-option" data-color="${c}" style="background:${c}"></div>`).join('');
+let newExerciseColor = '#007aff';
+
+function selectNewExerciseColor(color) {
+    newExerciseColor = color;
+    colorPreviewBtn.style.background = color;
+    document.querySelectorAll('#colorPickerGrid .color-option').forEach(el => el.classList.toggle('selected', el.dataset.color === color));
+}
+
+// 색상 미리보기 버튼 클릭 시 팔레트 토글
+colorPreviewBtn.addEventListener('click', () => {
+    colorPickerDropdown.classList.toggle('hidden');
+});
+
+colorPickerGrid.addEventListener('click', e => {
+    if (e.target.classList.contains('color-option')) {
+        selectNewExerciseColor(e.target.dataset.color);
+        colorPickerDropdown.classList.add('hidden');
+    }
+});
+
+function renderMain(searchQuery = '') {
+    // 정렬 토글 UI 업데이트
+    document.querySelectorAll('.sort-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.sort === exerciseSortOrder);
+    });
+
+    if (data.exercises.length === 0) {
+        exerciseList.innerHTML = '<div class="empty">운동을 추가하세요</div>';
+        return;
+    }
+
+    // 검색 필터 적용
+    let filteredExercises = data.exercises;
+    if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        filteredExercises = data.exercises.filter(name => name.toLowerCase().includes(query));
+    }
+
+    // 정렬 적용
+    let sortedExercises = [...filteredExercises];
+    if (exerciseSortOrder === 'name') {
+        sortedExercises.sort((a, b) => a.localeCompare(b, 'ko'));
+    }
+
+    if (sortedExercises.length === 0) {
+        exerciseList.innerHTML = '<div class="empty">검색 결과가 없습니다</div>';
+        return;
+    }
+
+    exerciseList.innerHTML = sortedExercises.map(name => {
+        const records = data.records[name] || [];
+        const todayCount = records.filter(r => r.d === today).length;
+        const color = data.colors[name] || '#007aff';
+        const memo = data.memos[name] || '';
+        return `
+            <div class="list-item" data-name="${name}" style="border-left-color:${color}">
+                <div style="display:flex;align-items:center">
+                    <div class="color-dot" style="background:${color}"></div>
+                    <div>
+                        <h3>${name}</h3>
+                        <span class="count">오늘 ${todayCount}세트</span>
+                        ${memo ? `<div class="item-memo">${memo}</div>` : ''}
+                    </div>
+                </div>
+                <div>
+                    <button class="delete-btn" data-name="${name}">×</button>
+                    <span class="arrow">›</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// 정렬 토글 이벤트
+document.getElementById('sortToggle').addEventListener('click', e => {
+    const btn = e.target.closest('.sort-btn');
+    if (btn && btn.dataset.sort !== exerciseSortOrder) {
+        exerciseSortOrder = btn.dataset.sort;
+        stored.exerciseSortOrder = exerciseSortOrder;
+        localStorage.setItem(KEY, JSON.stringify({ ...data, exerciseSortOrder }));
+        renderMain();
+    }
+});
+
+function renderDetail(filterDate = null) {
+    const records = data.records[currentExercise] || [];
+    const byDate = {};
+    records.forEach((r, i) => {
+        if (filterDate && r.d !== filterDate) return;
+        if (!byDate[r.d]) byDate[r.d] = [];
+        byDate[r.d].push({ ...r, idx: i });
+    });
+
+    const dates = Object.keys(byDate).sort().reverse();
+    if (dates.length === 0) {
+        setList.innerHTML = '<div class="empty">기록이 없습니다</div>';
+        return;
+    }
+
+    setList.innerHTML = dates.map(date => {
+        const sets = byDate[date];
+        const dateLabel = date === today ? '오늘' : date;
+        return `
+            <div class="date-label">${dateLabel}</div>
+            ${sets.map((s, i) => `
+                <div class="set-item">
+                    <div>
+                        <span class="info"><strong>${s.w}kg</strong> x ${s.r}reps</span>
+                        ${s.m ? `<div class="set-memo">${s.m}</div>` : ''}
+                    </div>
+                    <div>
+                        <span class="meta">Set ${i + 1}</span>
+                        <button class="delete-btn" data-idx="${s.idx}">×</button>
+                    </div>
+                </div>
+            `).join('')}
+        `;
+    }).join('');
+}
+
+function showMain() {
+    mainPage.classList.remove('hidden');
+    detailPage.classList.add('hidden');
+    addExercisePage.classList.add('hidden');
+    currentExercise = null;
+    renderMain();
+    currentViewMode === 'calendar' ? renderCalendar() : renderFeedView();
+}
+
+function showDetail(name, date = null) {
+    currentExercise = name;
+    detailTitle.textContent = name;
+    mainPage.classList.add('hidden');
+    detailPage.classList.remove('hidden');
+    addExercisePage.classList.add('hidden');
+    dayDetail.classList.add('hidden');
+
+    const memo = data.memos[name] || '';
+    exerciseMemo.value = memo;
+    if (memo) {
+        exerciseMemoDisplay.textContent = memo;
+        exerciseMemoDisplay.classList.remove('hidden');
+    } else {
+        exerciseMemoDisplay.classList.add('hidden');
+    }
+
+    dateInput.value = date || selectedDate || today;
+    weightInput.value = '';
+    repsInput.value = '';
+    setMemoInput.value = '';
+    renderDetail(date);
+}
+
+exerciseMemo.addEventListener('blur', () => {
+    if (currentExercise) {
+        data.memos[currentExercise] = exerciseMemo.value.trim();
+        save();
+        const memo = data.memos[currentExercise];
+        if (memo) {
+            exerciseMemoDisplay.textContent = memo;
+            exerciseMemoDisplay.classList.remove('hidden');
+        } else {
+            exerciseMemoDisplay.classList.add('hidden');
+        }
+    }
+});
+
+// 운동 추가 페이지 열기
+function openAddExercisePage() {
+    newExerciseNameInput.value = '';
+    newExerciseMemoInput.value = '';
+    newExerciseColor = '#007aff';
+    selectNewExerciseColor(newExerciseColor);
+    colorPickerDropdown.classList.add('hidden');
+    tabs.settings.classList.add('hidden');
+    addExercisePage.classList.remove('hidden');
+}
+
+// 운동 추가 페이지 닫기
+function closeAddExercisePage() {
+    addExercisePage.classList.add('hidden');
+    tabs.settings.classList.remove('hidden');
+}
+
+// 운동 추가 실행
+function addExercise() {
+    const name = newExerciseNameInput.value.trim();
+    if (!name) {
+        alert('운동 이름을 입력하세요');
+        return;
+    }
+    if (data.exercises.includes(name)) {
+        alert('이미 존재하는 운동입니다');
+        return;
+    }
+    data.exercises.push(name);
+    data.colors[name] = newExerciseColor;
+    data.records[name] = [];
+    data.memos[name] = newExerciseMemoInput.value.trim();
+    save();
+    renderMain();
+    currentViewMode === 'calendar' ? renderCalendar() : renderFeedView();
+    closeAddExercisePage();
+}
+
+document.getElementById('openAddExercise').addEventListener('click', openAddExercisePage);
+document.getElementById('closeAddExercise').addEventListener('click', closeAddExercisePage);
+document.getElementById('submitAddExercise').addEventListener('click', addExercise);
+newExerciseNameInput.addEventListener('keydown', e => { if (e.key === 'Enter') addExercise(); });
+
+// 검색 기능
+exerciseSearchInput.addEventListener('input', e => {
+    renderMain(e.target.value);
+});
+
+exerciseList.addEventListener('click', e => {
+    if (e.target.classList.contains('delete-btn')) {
+        const name = e.target.dataset.name;
+        data.exercises = data.exercises.filter(n => n !== name);
+        delete data.colors[name];
+        delete data.memos[name];
+        delete data.records[name];
+        save();
+        renderMain();
+        currentViewMode === 'calendar' ? renderCalendar() : renderFeedView();
+        return;
+    }
+    const item = e.target.closest('.list-item');
+    if (item) showDetail(item.dataset.name);
+});
+
+document.getElementById('backBtn').addEventListener('click', showMain);
+
+const editTitleBtn = document.getElementById('editTitleBtn');
+function startEditTitle() {
+    const currentName = currentExercise;
+    const header = detailTitle.parentElement;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'title-input';
+    input.value = currentName;
+    detailTitle.style.display = 'none';
+    editTitleBtn.style.display = 'none';
+    header.insertBefore(input, detailTitle);
+    input.focus();
+    input.select();
+
+    function finishEdit() {
+        const newName = input.value.trim();
+        input.remove();
+        detailTitle.style.display = '';
+        editTitleBtn.style.display = '';
+        if (!newName || newName === currentName) return;
+
+        if (data.exercises.includes(newName)) {
+            if (confirm(`"${newName}" 이미 존재합니다. 합칠까요?`)) {
+                data.records[newName] = [...data.records[newName], ...data.records[currentName]];
+                data.exercises = data.exercises.filter(n => n !== currentName);
+                delete data.colors[currentName];
+                delete data.memos[currentName];
+                delete data.records[currentName];
+                currentExercise = newName;
+                detailTitle.textContent = newName;
+                exerciseMemo.value = data.memos[newName] || '';
+                save();
+                renderDetail();
+            }
+        } else {
+            const idx = data.exercises.indexOf(currentName);
+            data.exercises[idx] = newName;
+            data.colors[newName] = data.colors[currentName];
+            delete data.colors[currentName];
+            data.memos[newName] = data.memos[currentName];
+            delete data.memos[currentName];
+            data.records[newName] = data.records[currentName];
+            delete data.records[currentName];
+            currentExercise = newName;
+            detailTitle.textContent = newName;
+            save();
+        }
+    }
+
+    input.addEventListener('blur', finishEdit);
+    input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') input.blur();
+        if (e.key === 'Escape') { input.value = currentName; input.blur(); }
+    });
+}
+
+editTitleBtn.addEventListener('click', startEditTitle);
+detailTitle.addEventListener('click', startEditTitle);
+
+// Validation 헬퍼
+function sanitizeNumber(value, allowDecimal = false) {
+    if (value === '' || value === null || value === undefined) return '';
+    let str = String(value).replace(/[^0-9.,-]/g, '').replace(',', '.');
+    if (!allowDecimal) str = str.replace(/\./g, '');
+    // 첫 번째 점만 유지
+    const parts = str.split('.');
+    if (parts.length > 2) str = parts[0] + '.' + parts.slice(1).join('');
+    // 음수 제거 (맨 앞 - 제거)
+    str = str.replace(/-/g, '');
+    return str;
+}
+
+function validateInput(input, allowDecimal = false) {
+    input.addEventListener('input', () => {
+        const pos = input.selectionStart;
+        const before = input.value;
+        input.value = sanitizeNumber(input.value, allowDecimal);
+        // 커서 위치 유지
+        if (before !== input.value) {
+            input.selectionStart = input.selectionEnd = Math.max(0, pos - (before.length - input.value.length));
+        }
+    });
+    input.addEventListener('paste', e => {
+        e.preventDefault();
+        const text = (e.clipboardData || window.clipboardData).getData('text');
+        input.value = sanitizeNumber(text, allowDecimal);
+    });
+}
+
+// 무게: 소수점 허용, 횟수: 정수만
+validateInput(weightInput, true);
+validateInput(repsInput, false);
+
+function addSet() {
+    const d = dateInput.value || today;
+    const wRaw = sanitizeNumber(weightInput.value, true);
+    const rRaw = sanitizeNumber(repsInput.value, false);
+    const w = wRaw === '' ? 0 : parseFloat(wRaw);
+    const r = rRaw === '' ? 0 : parseInt(rRaw);
+    const m = setMemoInput.value.trim();
+
+    // validation
+    if (isNaN(w) || w < 0) { weightInput.focus(); return; }
+    if (isNaN(r) || r <= 0) { repsInput.focus(); return; }
+
+    const record = { d, w, r };
+    if (m) record.m = m;
+    data.records[currentExercise].push(record);
+    save();
+    renderDetail();
+    currentViewMode === 'calendar' ? renderCalendar() : renderFeedView();
+    weightInput.value = '';
+    repsInput.value = '';
+    setMemoInput.value = '';
+    weightInput.focus();
+}
+
+document.getElementById('addSetBtn').addEventListener('click', addSet);
+[weightInput, repsInput].forEach(el => el.addEventListener('keydown', e => { if (e.key === 'Enter') addSet(); }));
+
+setList.addEventListener('click', e => {
+    if (e.target.classList.contains('delete-btn')) {
+        const idx = parseInt(e.target.dataset.idx);
+        data.records[currentExercise].splice(idx, 1);
+        save();
+        renderDetail();
+        currentViewMode === 'calendar' ? renderCalendar() : renderFeedView();
+    }
+});
+
+// Chart
+const chartSelect = document.getElementById('chartExerciseSelect');
+const chartContent = document.getElementById('chartContent');
+const chartEmpty = document.getElementById('chartEmpty');
+const weightChart = document.getElementById('weightChart');
+const volumeChart = document.getElementById('volumeChart');
+const chartPeriodBtns = document.querySelectorAll('.chart-period-btn');
+const chartCustomDate = document.getElementById('chartCustomDate');
+const chartStartDate = document.getElementById('chartStartDate');
+const chartEndDate = document.getElementById('chartEndDate');
+
+let currentChartPeriod = 'week';
+
+function updateChartSelect() {
+    chartSelect.innerHTML = '<option value="">운동을 선택하세요</option>' + data.exercises.map(name => `<option value="${name}">${name}</option>`).join('');
+}
+
+function getDateRange(period) {
+    const now = new Date();
+    const endDate = new Date(now);
+    let startDate = new Date(now);
+
+    switch(period) {
+        case 'week':
+            // 이번 주 월요일부터
+            const day = now.getDay();
+            const diff = day === 0 ? 6 : day - 1;
+            startDate.setDate(now.getDate() - diff);
+            break;
+        case '1month':
+            startDate.setMonth(now.getMonth() - 1);
+            break;
+        case '3month':
+            startDate.setMonth(now.getMonth() - 3);
+            break;
+        case '6month':
+            startDate.setMonth(now.getMonth() - 6);
+            break;
+        case '1year':
+            startDate.setFullYear(now.getFullYear() - 1);
+            break;
+        case 'custom':
+            if (chartStartDate.value && chartEndDate.value) {
+                return {
+                    start: chartStartDate.value,
+                    end: chartEndDate.value
+                };
+            }
+            // 커스텀이지만 날짜 미선택시 최근 1개월
+            startDate.setMonth(now.getMonth() - 1);
+            break;
+    }
+
+    return {
+        start: startDate.toLocaleDateString('sv-SE'),
+        end: endDate.toLocaleDateString('sv-SE')
+    };
+}
+
+chartPeriodBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        chartPeriodBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentChartPeriod = btn.dataset.period;
+
+        if (currentChartPeriod === 'custom') {
+            chartCustomDate.classList.add('show');
+            // 기본값 설정 (최근 1개월)
+            if (!chartStartDate.value || !chartEndDate.value) {
+                const now = new Date();
+                chartEndDate.value = now.toLocaleDateString('sv-SE');
+                const monthAgo = new Date(now);
+                monthAgo.setMonth(now.getMonth() - 1);
+                chartStartDate.value = monthAgo.toLocaleDateString('sv-SE');
+            }
+        } else {
+            chartCustomDate.classList.remove('show');
+        }
+
+        if (chartSelect.value) {
+            renderCharts(chartSelect.value);
+        }
+    });
+});
+
+chartStartDate.addEventListener('change', () => {
+    if (chartSelect.value && currentChartPeriod === 'custom') {
+        renderCharts(chartSelect.value);
+    }
+});
+
+chartEndDate.addEventListener('change', () => {
+    if (chartSelect.value && currentChartPeriod === 'custom') {
+        renderCharts(chartSelect.value);
+    }
+});
+
+chartSelect.addEventListener('change', () => {
+    const exercise = chartSelect.value;
+    if (!exercise) { chartContent.classList.add('hidden'); chartEmpty.classList.remove('hidden'); return; }
+    chartContent.classList.remove('hidden');
+    chartEmpty.classList.add('hidden');
+    renderCharts(exercise);
+});
+
+function renderCharts(exercise) {
+    const records = data.records[exercise] || [];
+    if (records.length === 0) { chartContent.classList.add('hidden'); chartEmpty.textContent = '기록이 없습니다'; chartEmpty.classList.remove('hidden'); return; }
+
+    const range = getDateRange(currentChartPeriod);
+    const byDate = {};
+    records.forEach(r => {
+        if (r.d >= range.start && r.d <= range.end) {
+            if (!byDate[r.d]) byDate[r.d] = [];
+            byDate[r.d].push(r);
+        }
+    });
+    const dates = Object.keys(byDate).sort();
+
+    if (dates.length === 0) {
+        chartContent.classList.add('hidden');
+        chartEmpty.textContent = '선택한 기간에 기록이 없습니다';
+        chartEmpty.classList.remove('hidden');
+        return;
+    }
+
+    chartContent.classList.remove('hidden');
+    chartEmpty.classList.add('hidden');
+
+    const chartData = dates.map(date => {
+        const dayRecords = byDate[date];
+        return { date, maxWeight: Math.max(...dayRecords.map(r => r.w)), totalVolume: dayRecords.reduce((sum, r) => sum + (r.w * r.r), 0) };
+    });
+
+    renderWeightChart(chartData);
+    renderVolumeChart(chartData);
+}
+
+function formatDateShort(dateStr) { const d = parseLocalDate(dateStr); return `${d.getMonth() + 1}/${d.getDate()}`; }
+
+function renderWeightChart(chartData) {
+    if (chartData.length === 0) { weightChart.innerHTML = '<div class="empty">데이터 없음</div>'; return; }
+    const maxWeight = Math.max(...chartData.map(d => d.maxWeight));
+    const minWeight = Math.min(...chartData.map(d => d.maxWeight));
+    const range = maxWeight - minWeight || 1;
+    const points = chartData.map((d, i) => ({ x: 10 + (i / (chartData.length - 1 || 1)) * 80, y: 10 + 80 - ((d.maxWeight - minWeight) / range) * 80, data: d }));
+    const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+    const areaD = pathD + ` L ${points[points.length - 1].x} 90 L 10 90 Z`;
+
+    weightChart.innerHTML = `
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+            <defs><linearGradient id="lineGradient" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#007aff;stop-opacity:0.3"/><stop offset="100%" style="stop-color:#007aff;stop-opacity:0"/></linearGradient></defs>
+            <path class="line-area" d="${areaD}"/>
+            <path class="line-path" d="${pathD}"/>
+            ${points.map(p => `<circle class="line-dot" cx="${p.x}" cy="${p.y}" r="3"/>`).join('')}
+        </svg>
+        <div class="line-labels">${chartData.filter((_, i) => i === 0 || i === chartData.length - 1).map(d => `<span class="line-label">${formatDateShort(d.date)}<br>${d.maxWeight}kg</span>`).join('')}</div>
+    `;
+}
+
+function renderVolumeChart(chartData) {
+    if (chartData.length === 0) { volumeChart.innerHTML = '<div class="empty">데이터 없음</div>'; return; }
+    const maxVolume = Math.max(...chartData.map(d => d.totalVolume));
+    volumeChart.innerHTML = chartData.map(d => `
+        <div class="bar-item">
+            <span class="bar-value">${d.totalVolume >= 1000 ? (d.totalVolume / 1000).toFixed(1) + 'k' : d.totalVolume}</span>
+            <div class="bar" style="height: ${(d.totalVolume / maxVolume) * 100}%"></div>
+            <span class="bar-label">${formatDateShort(d.date)}</span>
+        </div>
+    `).join('');
+}
+
+// Timer
+let timerDuration = 60, timerRemaining = 60, timerInterval = null, timerRunning = false;
+const timerDisplay = document.getElementById('timerDisplay');
+const timerStatus = document.getElementById('timerStatus');
+const timerToggle = document.getElementById('timerToggle');
+const timerReset = document.getElementById('timerReset');
+const timerProgressBar = document.getElementById('timerProgressBar');
+const presetBtns = document.querySelectorAll('.preset-btn');
+const customTimeInput = document.getElementById('customTime');
+const setCustomTimeBtn = document.getElementById('setCustomTime');
+
+function formatTime(seconds) { return `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, '0')}`; }
+function updateTimerDisplay() {
+    timerDisplay.textContent = formatTime(timerRemaining);
+    timerProgressBar.style.strokeDashoffset = 283 * (1 - timerRemaining / timerDuration);
+}
+
+function setTimerFn(seconds) {
+    timerDuration = seconds;
+    timerRemaining = seconds;
+    timerRunning = false;
+    clearInterval(timerInterval);
+    timerToggle.textContent = '시작';
+    timerToggle.classList.remove('pause');
+    timerToggle.classList.add('start');
+    timerStatus.textContent = '준비';
+    updateTimerDisplay();
+}
+
+function startTimer() {
+    if (timerRemaining <= 0) timerRemaining = timerDuration;
+    timerRunning = true;
+    timerToggle.textContent = '일시정지';
+    timerToggle.classList.remove('start');
+    timerToggle.classList.add('pause');
+    timerStatus.textContent = '진행 중';
+
+    timerInterval = setInterval(() => {
+        timerRemaining--;
+        updateTimerDisplay();
+        if (timerRemaining <= 0) {
+            clearInterval(timerInterval);
+            timerRunning = false;
+            timerToggle.textContent = '시작';
+            timerToggle.classList.remove('pause');
+            timerToggle.classList.add('start');
+            timerStatus.textContent = '완료!';
+            if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.frequency.value = 800;
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                osc.start(audioCtx.currentTime);
+                osc.stop(audioCtx.currentTime + 0.5);
+            } catch (e) {}
+        }
+    }, 1000);
+}
+
+function pauseTimer() {
+    clearInterval(timerInterval);
+    timerRunning = false;
+    timerToggle.textContent = '계속';
+    timerToggle.classList.remove('pause');
+    timerToggle.classList.add('start');
+    timerStatus.textContent = '일시정지';
+}
+
+timerToggle.addEventListener('click', () => timerRunning ? pauseTimer() : startTimer());
+timerReset.addEventListener('click', () => setTimerFn(timerDuration));
+presetBtns.forEach(btn => btn.addEventListener('click', () => {
+    presetBtns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    setTimerFn(parseInt(btn.dataset.time));
+}));
+setCustomTimeBtn.addEventListener('click', () => {
+    const time = parseInt(customTimeInput.value);
+    if (time > 0) { presetBtns.forEach(b => b.classList.remove('active')); setTimerFn(time); customTimeInput.value = ''; }
+});
+customTimeInput.addEventListener('keydown', e => { if (e.key === 'Enter') setCustomTimeBtn.click(); });
+validateInput(customTimeInput, false);
+
+// 해시 기반 라우팅
+let isNavigating = false;
+
+function getHash() {
+    return location.hash.slice(1) || 'record';
+}
+
+function navigate(path, replace = false) {
+    if (isNavigating) return;
+    const newHash = '#' + path;
+    if (location.hash === newHash) return;
+    if (replace) {
+        history.replaceState(null, '', newHash);
+    } else {
+        history.pushState(null, '', newHash);
+    }
+}
+
+function handleRoute() {
+    isNavigating = true;
+    const hash = getHash();
+    const parts = hash.split('/');
+    const route = parts[0];
+
+    // 모달/패널 닫기
+    dayDetail.classList.add('hidden');
+    monthPickerModal.classList.remove('show');
+    addExercisePage.classList.add('hidden');
+
+    if (route === 'detail' && parts[1]) {
+        const exerciseName = decodeURIComponent(parts[1]);
+        const date = parts[2] || null;
+        if (data.exercises.includes(exerciseName)) {
+            // 탭은 record로
+            Object.values(tabs).forEach(t => t.classList.add('hidden'));
+            tabs.record.classList.remove('hidden');
+            tabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === 'record'));
+            // 상세 페이지 표시
+            currentExercise = exerciseName;
+            detailTitle.textContent = exerciseName;
+            mainPage.classList.add('hidden');
+            detailPage.classList.remove('hidden');
+            const memo = data.memos[exerciseName] || '';
+            exerciseMemo.value = memo;
+            if (memo) {
+                exerciseMemoDisplay.textContent = memo;
+                exerciseMemoDisplay.classList.remove('hidden');
+            } else {
+                exerciseMemoDisplay.classList.add('hidden');
+            }
+            dateInput.value = date || selectedDate || today;
+            weightInput.value = '';
+            repsInput.value = '';
+            setMemoInput.value = '';
+            renderDetail(date);
+        } else {
+            navigate('record', true);
+            isNavigating = false;
+            handleRoute();
+            return;
+        }
+    } else if (route === 'chart') {
+        Object.values(tabs).forEach(t => t.classList.add('hidden'));
+        tabs.chart.classList.remove('hidden');
+        tabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === 'chart'));
+        updateChartSelect();
+    } else if (route === 'timer') {
+        Object.values(tabs).forEach(t => t.classList.add('hidden'));
+        tabs.timer.classList.remove('hidden');
+        tabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === 'timer'));
+    } else if (route === 'achievement') {
+        Object.values(tabs).forEach(t => t.classList.add('hidden'));
+        tabs.achievement.classList.remove('hidden');
+        tabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === 'achievement'));
+        renderAchievements();
+    } else if (route === 'settings') {
+        Object.values(tabs).forEach(t => t.classList.add('hidden'));
+        tabs.settings.classList.remove('hidden');
+        tabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === 'settings'));
+        renderMain();
+    } else {
+        // record (기본)
+        Object.values(tabs).forEach(t => t.classList.add('hidden'));
+        tabs.record.classList.remove('hidden');
+        tabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === 'record'));
+        mainPage.classList.remove('hidden');
+        detailPage.classList.add('hidden');
+        currentExercise = null;
+        renderMain();
+        currentViewMode === 'calendar' ? renderCalendar() : renderFeedView();
+    }
+    isNavigating = false;
+}
+
+window.addEventListener('popstate', handleRoute);
+
+// 기존 함수들 수정 - navigate 호출 추가
+const originalSwitchTab = switchTab;
+switchTab = function(tabName) {
+    if (tabName === 'record') {
+        navigate('record');
+    } else {
+        navigate(tabName);
+    }
+    handleRoute();
+};
+
+const originalShowMain = showMain;
+showMain = function() {
+    navigate('record');
+    handleRoute();
+};
+
+const originalShowDetail = showDetail;
+showDetail = function(name, date = null) {
+    selectedDate = date || selectedDate || today;
+    if (date) {
+        navigate(`detail/${encodeURIComponent(name)}/${date}`);
+    } else {
+        navigate(`detail/${encodeURIComponent(name)}`);
+    }
+    handleRoute();
+};
+
+// 탭 버튼 이벤트 재설정
+tabButtons.forEach(btn => {
+    btn.removeEventListener('click', () => {});
+    btn.onclick = () => switchTab(btn.dataset.tab);
+});
+
+// 뒤로가기 버튼
+document.getElementById('backBtn').onclick = () => {
+    history.back();
+};
+
+// ==================== 업적 시스템 ====================
+const ACHIEVEMENTS = [
+    // 일회성 업적
+    { id: 'firstRecord', title: '시작이 반', desc: '첫 운동 기록', icon: '🎯', type: 'once' },
+    { id: 'first3days', title: '작심삼일극복', desc: '앱 등록 후 연속 3일 기록', icon: '🔥', type: 'once' },
+    { id: 'total50', title: '오십보백보', desc: '총 50일 기록 달성', icon: '👟', type: 'once' },
+    { id: 'total100', title: '백전백승', desc: '총 100일 기록 달성', icon: '💯', type: 'once' },
+    // 반복형 업적 - 출석
+    { id: 'week3', title: '주 3회', desc: '한 주에 3일 이상 운동 (4주 연속)', icon: '📅', type: 'repeat' },
+    { id: 'week5', title: '주5일제', desc: '한 주에 5일 운동', icon: '📆', type: 'repeat' },
+    { id: 'week7', title: '체육관관장님?', desc: '한 주에 7일 운동', icon: '🏆', type: 'repeat' },
+    // 반복형 업적 - 볼륨 (주) - 등급별
+    { id: 'volumeUpWeek1', title: '볼륨업 (3등급)', desc: '전주 대비 볼륨 1% 증가', icon: '📈', type: 'repeat' },
+    { id: 'volumeUpWeek3', title: '볼륨업 (2등급)', desc: '전주 대비 볼륨 3% 증가', icon: '📈', type: 'repeat' },
+    { id: 'volumeUpWeek5', title: '볼륨업 (1등급)', desc: '전주 대비 볼륨 5% 증가', icon: '📈', type: 'repeat' },
+    { id: 'volumeUpWeek10', title: '볼륨업 (0등급)', desc: '전주 대비 볼륨 10% 증가', icon: '📈', type: 'repeat' },
+    // 반복형 업적 - 볼륨 (월) - 등급별
+    { id: 'volumeUpMonth1', title: '메가볼륨 (3등급)', desc: '전월 대비 볼륨 1% 증가', icon: '🚀', type: 'repeat' },
+    { id: 'volumeUpMonth3', title: '메가볼륨 (2등급)', desc: '전월 대비 볼륨 3% 증가', icon: '🚀', type: 'repeat' },
+    { id: 'volumeUpMonth5', title: '메가볼륨 (1등급)', desc: '전월 대비 볼륨 5% 증가', icon: '🚀', type: 'repeat' },
+    { id: 'volumeUpMonth10', title: '메가볼륨 (0등급)', desc: '전월 대비 볼륨 10% 증가', icon: '🚀', type: 'repeat' },
+    // 반복형 업적 - 무게 (주) - 등급별
+    { id: 'heavyWeek1', title: '웨이팅 (3등급)', desc: '전주 대비 무게 1% 증가', icon: '🏋️', type: 'repeat' },
+    { id: 'heavyWeek3', title: '웨이팅 (2등급)', desc: '전주 대비 무게 3% 증가', icon: '🏋️', type: 'repeat' },
+    { id: 'heavyWeek5', title: '웨이팅 (1등급)', desc: '전주 대비 무게 5% 증가', icon: '🏋️', type: 'repeat' },
+    { id: 'heavyWeek10', title: '웨이팅 (0등급)', desc: '전주 대비 무게 10% 증가', icon: '🏋️', type: 'repeat' },
+    // 반복형 업적 - 무게 (월) - 등급별
+    { id: 'heavyMonth1', title: '슈퍼웨이팅 (3등급)', desc: '전월 대비 무게 1% 증가', icon: '💪', type: 'repeat' },
+    { id: 'heavyMonth3', title: '슈퍼웨이팅 (2등급)', desc: '전월 대비 무게 3% 증가', icon: '💪', type: 'repeat' },
+    { id: 'heavyMonth5', title: '슈퍼웨이팅 (1등급)', desc: '전월 대비 무게 5% 증가', icon: '💪', type: 'repeat' },
+    { id: 'heavyMonth10', title: '슈퍼웨이팅 (0등급)', desc: '전월 대비 무게 10% 증가', icon: '💪', type: 'repeat' },
+    // 반대 미션 - 휴식
+    { id: 'rest1week', title: '언제까지 회복기간?', desc: '1주일 기록 없음', icon: '😴', type: 'repeat' },
+    { id: 'rest1month', title: '지금은 휴가중', desc: '한 달 기록 없음', icon: '🏖️', type: 'repeat' },
+    { id: 'rest3month', title: '동면시간?', desc: '3달 기록 없음', icon: '🐻', type: 'repeat' },
+];
+
+// 업적 달성 데이터 초기화
+if (!data.achievements) data.achievements = {};
+
+function getAllRecordDatesForAchievements() {
+    const dates = new Set();
+    for (const exercise of data.exercises) {
+        (data.records[exercise] || []).forEach(r => dates.add(r.d));
+    }
+    return [...dates].sort();
+}
+
+function getWeekDates(date) {
+    const d = parseLocalDate(date);
+    const day = d.getDay();
+    const start = new Date(d);
+    start.setDate(d.getDate() - day);
+    const dates = [];
+    for (let i = 0; i < 7; i++) {
+        const curr = new Date(start);
+        curr.setDate(start.getDate() + i);
+        dates.push(toDateStr(curr));
+    }
+    return dates;
+}
+
+function getWeekVolume(weekDates) {
+    let total = 0;
+    for (const exercise of data.exercises) {
+        (data.records[exercise] || []).forEach(r => {
+            if (weekDates.includes(r.d)) total += (r.w || 0) * (r.r || 0);
+        });
+    }
+    return total;
+}
+
+function getWeekWeight(weekDates) {
+    let total = 0, count = 0;
+    for (const exercise of data.exercises) {
+        (data.records[exercise] || []).forEach(r => {
+            if (weekDates.includes(r.d) && r.w > 0) { total += r.w; count++; }
+        });
+    }
+    return count > 0 ? total / count : 0;
+}
+
+function getMonthVolume(year, month) {
+    let total = 0;
+    for (const exercise of data.exercises) {
+        (data.records[exercise] || []).forEach(r => {
+            const d = parseLocalDate(r.d);
+            if (d.getFullYear() === year && d.getMonth() === month) {
+                total += (r.w || 0) * (r.r || 0);
+            }
+        });
+    }
+    return total;
+}
+
+function getMonthWeight(year, month) {
+    let total = 0, count = 0;
+    for (const exercise of data.exercises) {
+        (data.records[exercise] || []).forEach(r => {
+            const d = parseLocalDate(r.d);
+            if (d.getFullYear() === year && d.getMonth() === month && r.w > 0) {
+                total += r.w; count++;
+            }
+        });
+    }
+    return count > 0 ? total / count : 0;
+}
+
+function checkAchievements() {
+    if (!data.achievements) data.achievements = {};
+    const allDates = getAllRecordDatesForAchievements();
+    const totalDays = allDates.length;
+
+    // 헬퍼: 반복 업적 추가
+    function addRepeatAchievement(id, key, keyType = 'weeks') {
+        if (!data.achievements[id]) data.achievements[id] = { count: 0, [keyType]: [] };
+        if (!data.achievements[id][keyType].includes(key)) {
+            data.achievements[id].count++;
+            data.achievements[id][keyType].push(key);
+        }
+    }
+
+    // 시작이 반: 첫 기록
+    if (!data.achievements.firstRecord && totalDays >= 1) {
+        data.achievements.firstRecord = { count: 1, date: allDates[0] };
+    }
+
+    // 작심삼일극복: 처음 3일 연속
+    if (!data.achievements.first3days && allDates.length >= 3) {
+        let consecutive = true;
+        for (let i = 1; i < 3; i++) {
+            const prev = parseLocalDate(allDates[i-1]);
+            const curr = parseLocalDate(allDates[i]);
+            const diff = (curr - prev) / (1000 * 60 * 60 * 24);
+            if (diff !== 1) { consecutive = false; break; }
+        }
+        if (consecutive) data.achievements.first3days = { count: 1, date: today };
+    }
+
+    // 오십보백보: 50일 기록
+    if (!data.achievements.total50 && totalDays >= 50) {
+        data.achievements.total50 = { count: 1, date: today };
+    }
+
+    // 백전백승: 100일 기록
+    if (!data.achievements.total100 && totalDays >= 100) {
+        data.achievements.total100 = { count: 1, date: today };
+    }
+
+    // 주간 업적 체크 (현재 주 기준)
+    const thisWeek = getWeekDates(today);
+    const lastWeekStart = new Date(parseLocalDate(today));
+    lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+    const lastWeek = getWeekDates(toDateStr(lastWeekStart));
+
+    const thisWeekDays = allDates.filter(d => thisWeek.includes(d)).length;
+    const weekKey = thisWeek[0];
+
+    // 주 3회 (4주 연속 체크)
+    let week3Consecutive = 0;
+    for (let w = 0; w < 4; w++) {
+        const checkWeekStart = new Date(parseLocalDate(today));
+        checkWeekStart.setDate(checkWeekStart.getDate() - (w * 7));
+        const checkWeek = getWeekDates(toDateStr(checkWeekStart));
+        const checkWeekDays = allDates.filter(d => checkWeek.includes(d)).length;
+        if (checkWeekDays >= 3) week3Consecutive++;
+        else break;
+    }
+    if (week3Consecutive >= 4) {
+        addRepeatAchievement('week3', weekKey);
+    }
+
+    // 주5일제
+    if (thisWeekDays >= 5) addRepeatAchievement('week5', weekKey);
+
+    // 체육관관장님?
+    if (thisWeekDays >= 7) addRepeatAchievement('week7', weekKey);
+
+    // 볼륨 (주)
+    const thisWeekVol = getWeekVolume(thisWeek);
+    const lastWeekVol = getWeekVolume(lastWeek);
+    if (lastWeekVol > 0) {
+        const volRatio = thisWeekVol / lastWeekVol;
+        if (volRatio >= 1.01) addRepeatAchievement('volumeUpWeek1', weekKey);
+        if (volRatio >= 1.03) addRepeatAchievement('volumeUpWeek3', weekKey);
+        if (volRatio >= 1.05) addRepeatAchievement('volumeUpWeek5', weekKey);
+        if (volRatio >= 1.10) addRepeatAchievement('volumeUpWeek10', weekKey);
+    }
+
+    // 무게 (주)
+    const thisWeekWt = getWeekWeight(thisWeek);
+    const lastWeekWt = getWeekWeight(lastWeek);
+    if (lastWeekWt > 0) {
+        const wtRatio = thisWeekWt / lastWeekWt;
+        if (wtRatio >= 1.01) addRepeatAchievement('heavyWeek1', weekKey);
+        if (wtRatio >= 1.03) addRepeatAchievement('heavyWeek3', weekKey);
+        if (wtRatio >= 1.05) addRepeatAchievement('heavyWeek5', weekKey);
+        if (wtRatio >= 1.10) addRepeatAchievement('heavyWeek10', weekKey);
+    }
+
+    // 월간 업적 체크
+    const now = new Date();
+    const thisMonth = now.getMonth();
+    const thisYear = now.getFullYear();
+    const lastMonth = thisMonth === 0 ? 11 : thisMonth - 1;
+    const lastMonthYear = thisMonth === 0 ? thisYear - 1 : thisYear;
+    const monthKey = `${thisYear}-${thisMonth}`;
+
+    // 볼륨 (월)
+    const thisMonthVol = getMonthVolume(thisYear, thisMonth);
+    const lastMonthVol = getMonthVolume(lastMonthYear, lastMonth);
+    if (lastMonthVol > 0) {
+        const volRatio = thisMonthVol / lastMonthVol;
+        if (volRatio >= 1.01) addRepeatAchievement('volumeUpMonth1', monthKey, 'months');
+        if (volRatio >= 1.03) addRepeatAchievement('volumeUpMonth3', monthKey, 'months');
+        if (volRatio >= 1.05) addRepeatAchievement('volumeUpMonth5', monthKey, 'months');
+        if (volRatio >= 1.10) addRepeatAchievement('volumeUpMonth10', monthKey, 'months');
+    }
+
+    // 무게 (월)
+    const thisMonthWt = getMonthWeight(thisYear, thisMonth);
+    const lastMonthWt = getMonthWeight(lastMonthYear, lastMonth);
+    if (lastMonthWt > 0) {
+        const wtRatio = thisMonthWt / lastMonthWt;
+        if (wtRatio >= 1.01) addRepeatAchievement('heavyMonth1', monthKey, 'months');
+        if (wtRatio >= 1.03) addRepeatAchievement('heavyMonth3', monthKey, 'months');
+        if (wtRatio >= 1.05) addRepeatAchievement('heavyMonth5', monthKey, 'months');
+        if (wtRatio >= 1.10) addRepeatAchievement('heavyMonth10', monthKey, 'months');
+    }
+
+    // 휴식 업적 체크
+    if (allDates.length > 0) {
+        const lastRecordDate = parseLocalDate(allDates[allDates.length - 1]);
+        const todayDate = parseLocalDate(today);
+        const daysSinceLastRecord = Math.floor((todayDate - lastRecordDate) / (1000 * 60 * 60 * 24));
+
+        // 마지막 기록과 휴식 시작점의 키 (중복 방지)
+        const restKey = allDates[allDates.length - 1];
+
+        if (daysSinceLastRecord >= 7) addRepeatAchievement('rest1week', restKey, 'periods');
+        if (daysSinceLastRecord >= 30) addRepeatAchievement('rest1month', restKey, 'periods');
+        if (daysSinceLastRecord >= 90) addRepeatAchievement('rest3month', restKey, 'periods');
+    }
+
+    save();
+}
+
+function renderAchievements() {
+    checkAchievements();
+
+    const achieved = ACHIEVEMENTS.filter(a => data.achievements[a.id]);
+    const locked = ACHIEVEMENTS.filter(a => !data.achievements[a.id]);
+    const totalCount = achieved.reduce((sum, a) => sum + (data.achievements[a.id]?.count || 0), 0);
+
+    document.getElementById('achievementSummary').innerHTML = `
+        <div class="achievement-stat">
+            <div class="achievement-stat-value">${achieved.length}</div>
+            <div class="achievement-stat-label">달성 업적</div>
+        </div>
+        <div class="achievement-stat">
+            <div class="achievement-stat-value">${totalCount}</div>
+            <div class="achievement-stat-label">총 달성 횟수</div>
+        </div>
+        <div class="achievement-stat">
+            <div class="achievement-stat-value">${getAllRecordDatesForAchievements().length}</div>
+            <div class="achievement-stat-label">총 기록일</div>
+        </div>
+    `;
+
+    const list = document.getElementById('achievementList');
+    list.innerHTML = [...achieved, ...locked].map(a => {
+        const data_a = data.achievements[a.id];
+        const isLocked = !data_a;
+        const count = data_a?.count || 0;
+        return `
+            <div class="achievement-item ${isLocked ? 'locked' : ''}">
+                <div class="achievement-icon">${a.icon}</div>
+                <div class="achievement-info">
+                    <div class="achievement-title">${a.title}</div>
+                    <div class="achievement-desc">${a.desc}</div>
+                </div>
+                ${!isLocked && a.type === 'repeat' ? `<div class="achievement-count">×${count}</div>` : ''}
+                ${!isLocked && a.type === 'once' ? '<span class="achievement-check">✓</span>' : ''}
+            </div>
+        `;
+    }).join('');
+}
+
+// ==================== 업적 시스템 끝 ====================
+
+// INIT - 테스트 데이터 강제 생성
+function generateTestData() {
+    data = { exercises: [], colors: {}, memos: {}, records: {} };
+    const exercises = [
+        { name: '팔굽혀펴기', color: '#ff6b6b' },
+        { name: '윗몸일으키기', color: '#51cf66' },
+        { name: '벤치프레스', color: '#339af0' },
+        { name: '스쿼트', color: '#cc5de8' }
+    ];
+
+    exercises.forEach(ex => {
+        data.exercises.push(ex.name);
+        data.colors[ex.name] = ex.color;
+        data.memos[ex.name] = '';
+        data.records[ex.name] = [];
+    });
+
+    data.memos['팔굽혀펴기'] = '가슴과 삼두를 단련하는 기본 운동';
+    data.memos['벤치프레스'] = '가슴 운동의 왕, 바벨 벤치프레스';
+
+    const now = new Date();
+    for (let i = 30; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toLocaleDateString('sv-SE');
+
+        if (Math.random() > 0.3) {
+            if (Math.random() > 0.3) {
+                const sets = 3 + Math.floor(Math.random() * 3);
+                for (let s = 0; s < sets; s++) {
+                    data.records['팔굽혀펴기'].push({ d: dateStr, w: 1, r: 15 + Math.floor(Math.random() * 20) });
+                }
+            }
+            if (Math.random() > 0.4) {
+                const sets = 3 + Math.floor(Math.random() * 2);
+                for (let s = 0; s < sets; s++) {
+                    data.records['윗몸일으키기'].push({ d: dateStr, w: 1, r: 20 + Math.floor(Math.random() * 15) });
+                }
+            }
+            if (Math.random() > 0.4) {
+                const baseWeight = 40 + Math.floor((30 - i) / 5) * 2.5;
+                const sets = 4 + Math.floor(Math.random() * 2);
+                for (let s = 0; s < sets; s++) {
+                    const rec = { d: dateStr, w: baseWeight + (s < 2 ? 0 : 5), r: 8 + Math.floor(Math.random() * 5) };
+                    if (Math.random() > 0.7) rec.m = '컨디션 좋음';
+                    data.records['벤치프레스'].push(rec);
+                }
+            }
+            if (Math.random() > 0.4) {
+                const sets = 3 + Math.floor(Math.random() * 2);
+                for (let s = 0; s < sets; s++) {
+                    data.records['스쿼트'].push({ d: dateStr, w: 1, r: 15 + Math.floor(Math.random() * 10) });
+                }
+            }
+        }
+    }
+    save();
+}
+
+generateTestData();
+updateTimerDisplay();
+
+// 초기 라우팅
+if (!location.hash) {
+    navigate('record', true);
+}
+handleRoute();
