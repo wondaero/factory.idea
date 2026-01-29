@@ -77,6 +77,7 @@ let selectedDate = today;
 let calendarYear = new Date().getFullYear();
 let calendarMonth = new Date().getMonth();
 let currentViewMode = 'calendar';
+let isFromCalendar = false;
 let pickerYear = calendarYear;
 let exerciseSortOrder = stored.exerciseSortOrder || 'registered';
 
@@ -190,8 +191,8 @@ const yearGrid = document.getElementById('yearGrid');
 const yearScrollContainer = document.getElementById('yearScrollContainer');
 const monthGrid = document.getElementById('monthGrid');
 
-// 연도 범위 (현재 연도 기준 위아래로 확장)
-let yearRangeStart = new Date().getFullYear() - 5;
+// 연도 범위 (현재 연도 기준 12개 표시, 9개 보이고 3개는 스크롤)
+let yearRangeStart = new Date().getFullYear() - 11;
 let yearRangeEnd = new Date().getFullYear();
 
 calendarTitleBtn.addEventListener('click', () => {
@@ -676,8 +677,9 @@ function renderDetail(filterDate = null) {
 }
 
 function loadMoreRecords() {
-    const startIdx = recordsPage * RECORDS_PER_PAGE;
-    const endIdx = startIdx + RECORDS_PER_PAGE;
+    // 캘린더에서 접근 시 전체 표시, 아니면 페이지네이션
+    const startIdx = isFromCalendar ? 0 : recordsPage * RECORDS_PER_PAGE;
+    const endIdx = isFromCalendar ? allSortedDates.length : startIdx + RECORDS_PER_PAGE;
     const datesToRender = allSortedDates.slice(startIdx, endIdx);
 
     if (datesToRender.length === 0) {
@@ -708,11 +710,15 @@ function loadMoreRecords() {
         `;
     }).join('');
 
-    setList.insertAdjacentHTML('beforeend', html);
-    recordsPage++;
+    if (isFromCalendar) {
+        setList.innerHTML = html;
+    } else {
+        setList.insertAdjacentHTML('beforeend', html);
+        recordsPage++;
+    }
 
-    // 더 로드할 데이터 있는지 확인
-    const hasMore = endIdx < allSortedDates.length;
+    // 캘린더에서는 더보기 항상 숨김
+    const hasMore = !isFromCalendar && endIdx < allSortedDates.length;
     document.getElementById('loadMoreIndicator').classList.toggle('hidden', !hasMore);
 }
 
@@ -747,10 +753,26 @@ function showDetail(name, date = null) {
     repsInput.value = '';
     setMemoInput.value = '';
 
-    // 기록 토글 상태 초기화 (숨김)
-    isHistoryVisible = false;
-    document.getElementById('historyToggleBtn').classList.remove('active');
-    document.getElementById('setListContainer').classList.add('hidden');
+    // 캘린더에서 접근 시: 입력 폼 숨김, 기록 바로 표시
+    // 운동관리에서 접근 시: 입력 폼 보임, 기록 숨김
+    if (date) {
+        isHistoryVisible = true;
+        isFromCalendar = true;
+        document.getElementById('inputFormArea').classList.add('hidden');
+        document.getElementById('addRecordToggleBtn').classList.remove('hidden');
+        document.getElementById('historyToggleBtn').classList.add('hidden');
+        document.getElementById('setListContainer').classList.remove('hidden');
+        document.getElementById('setListContainer').style.maxHeight = 'none';
+    } else {
+        isHistoryVisible = false;
+        isFromCalendar = false;
+        document.getElementById('inputFormArea').classList.remove('hidden');
+        document.getElementById('addRecordToggleBtn').classList.add('hidden');
+        document.getElementById('historyToggleBtn').classList.remove('hidden');
+        document.getElementById('historyToggleBtn').classList.remove('active');
+        document.getElementById('setListContainer').classList.add('hidden');
+        document.getElementById('setListContainer').style.maxHeight = '';
+    }
 
     renderDetail(date);
 }
@@ -965,6 +987,13 @@ function addSet() {
 
 document.getElementById('addSetBtn').addEventListener('click', addSet);
 [weightInput, repsInput].forEach(el => el.addEventListener('keydown', e => { if (e.key === 'Enter') addSet(); }));
+
+// 캘린더에서 접근 시 "기록 추가" 버튼 클릭 → 입력 폼 표시
+document.getElementById('addRecordToggleBtn').addEventListener('click', () => {
+    document.getElementById('inputFormArea').classList.remove('hidden');
+    document.getElementById('addRecordToggleBtn').classList.add('hidden');
+    weightInput.focus();
+});
 
 // 기록 토글 버튼
 const historyToggleBtn = document.getElementById('historyToggleBtn');
@@ -1376,6 +1405,27 @@ function handleRoute() {
             weightInput.value = '';
             repsInput.value = '';
             setMemoInput.value = '';
+
+            // 캘린더에서 접근 시: 입력 폼 숨김, 기록 바로 표시
+            if (date) {
+                isHistoryVisible = true;
+                isFromCalendar = true;
+                document.getElementById('inputFormArea').classList.add('hidden');
+                document.getElementById('addRecordToggleBtn').classList.remove('hidden');
+                document.getElementById('historyToggleBtn').classList.add('hidden');
+                document.getElementById('setListContainer').classList.remove('hidden');
+                document.getElementById('setListContainer').style.maxHeight = 'none';
+            } else {
+                isHistoryVisible = false;
+                isFromCalendar = false;
+                document.getElementById('inputFormArea').classList.remove('hidden');
+                document.getElementById('addRecordToggleBtn').classList.add('hidden');
+                document.getElementById('historyToggleBtn').classList.remove('hidden');
+                document.getElementById('historyToggleBtn').classList.remove('active');
+                document.getElementById('setListContainer').classList.add('hidden');
+                document.getElementById('setListContainer').style.maxHeight = '';
+            }
+
             renderDetail(date);
         } else {
             navigate('record', true);

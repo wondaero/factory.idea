@@ -78,20 +78,28 @@
                     <button class="edit-btn" id="editTitleBtn">✎</button>
                 </header>
                 <div class="exercise-memo-display hidden" id="exerciseMemoDisplay"></div>
-                <div class="memo-row">
-                    <textarea id="exerciseMemo" placeholder="운동 메모 (이 운동에 대한 설명)" rows="2"></textarea>
+
+                <!-- 캘린더에서 접근 시 보이는 버튼 -->
+                <button class="add-record-toggle-btn hidden" id="addRecordToggleBtn">+ 기록 추가</button>
+
+                <!-- 입력 폼 영역 -->
+                <div id="inputFormArea">
+                    <div class="memo-row">
+                        <textarea id="exerciseMemo" placeholder="운동 메모 (이 운동에 대한 설명)" rows="2"></textarea>
+                    </div>
+                    <div class="date-row">
+                        <input type="date" id="dateInput">
+                    </div>
+                    <div class="input-row">
+                        <input type="number" id="weightInput" placeholder="kg" inputmode="decimal">
+                        <input type="number" id="repsInput" placeholder="reps" inputmode="numeric">
+                    </div>
+                    <div class="memo-row">
+                        <input type="text" id="setMemo" placeholder="세트 메모 (선택)">
+                    </div>
+                    <button class="add-set-btn" id="addSetBtn">Add Set</button>
                 </div>
-                <div class="date-row">
-                    <input type="date" id="dateInput">
-                </div>
-                <div class="input-row">
-                    <input type="number" id="weightInput" placeholder="kg" inputmode="decimal">
-                    <input type="number" id="repsInput" placeholder="reps" inputmode="numeric">
-                </div>
-                <div class="memo-row">
-                    <input type="text" id="setMemo" placeholder="세트 메모 (선택)">
-                </div>
-                <button class="add-set-btn" id="addSetBtn">Add Set</button>
+
                 <div class="history-header">
                     <span class="history-title">기록</span>
                     <button class="history-toggle-btn" id="historyToggleBtn">
