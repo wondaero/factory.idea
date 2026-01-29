@@ -20,9 +20,57 @@ const PRESET_COLORS = [
 ];
 
 let stored = JSON.parse(localStorage.getItem(KEY) || '{}');
-let data = (stored.exercises && stored.records)
-    ? { ...stored, colors: stored.colors || {}, memos: stored.memos || {}, achievements: stored.achievements || {} }
-    : { exercises: [], colors: {}, memos: {}, records: {}, achievements: {} };
+
+// 데이터 마이그레이션: 기존 객체 구조 → 플랫 배열 구조
+function migrateData(oldData) {
+    if (!oldData.exercises || !oldData.records) {
+        return { exercises: [], colors: {}, memos: {}, records: [], achievements: {} };
+    }
+
+    // 이미 새 구조면 그대로 반환
+    if (Array.isArray(oldData.records)) {
+        return {
+            ...oldData,
+            colors: oldData.colors || {},
+            memos: oldData.memos || {},
+            achievements: oldData.achievements || {}
+        };
+    }
+
+    // 기존 구조 → 새 구조로 마이그레이션
+    const newRecords = [];
+    let idCounter = 0;
+
+    for (const exercise of oldData.exercises) {
+        const exerciseRecords = oldData.records[exercise] || [];
+        for (const record of exerciseRecords) {
+            // 기존 d (날짜만) → datetime (시간 포함)
+            // 기존 데이터는 시간 정보가 없으므로 정오(12:00)로 설정 + 순서대로 1초씩 추가
+            const datetime = `${record.d}T12:00:${String(idCounter % 60).padStart(2, '0')}`;
+            newRecords.push({
+                id: `migrated_${idCounter++}`,
+                datetime: datetime,
+                exercise: exercise,
+                w: record.w,
+                r: record.r,
+                m: record.m || null
+            });
+        }
+    }
+
+    // datetime 기준 정렬
+    newRecords.sort((a, b) => a.datetime.localeCompare(b.datetime));
+
+    return {
+        exercises: oldData.exercises,
+        colors: oldData.colors || {},
+        memos: oldData.memos || {},
+        records: newRecords,
+        achievements: oldData.achievements || {}
+    };
+}
+
+let data = migrateData(stored);
 let currentExercise = null;
 let selectedColor = '#007aff';
 let selectedDate = today;
@@ -46,6 +94,33 @@ function toDateStr(date) {
     const m = String(date.getMonth() + 1).padStart(2, '0');
     const d = String(date.getDate()).padStart(2, '0');
     return `${y}-${m}-${d}`;
+}
+
+// datetime에서 날짜만 추출
+function getDateFromDatetime(datetime) {
+    return datetime.split('T')[0];
+}
+
+// 현재 시간으로 datetime 생성
+function createDatetime(dateStr = null) {
+    const now = new Date();
+    if (dateStr) {
+        // 지정된 날짜 + 현재 시간
+        const [y, m, d] = dateStr.split('-').map(Number);
+        now.setFullYear(y, m - 1, d);
+    }
+    const y = now.getFullYear();
+    const mo = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    const h = String(now.getHours()).padStart(2, '0');
+    const mi = String(now.getMinutes()).padStart(2, '0');
+    const s = String(now.getSeconds()).padStart(2, '0');
+    return `${y}-${mo}-${d}T${h}:${mi}:${s}`;
+}
+
+// 고유 ID 생성
+function generateId() {
+    return `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
 // Tab Navigation
@@ -111,23 +186,70 @@ calendarContainer.addEventListener('touchend', () => {
 // Month Picker
 const monthPickerModal = document.getElementById('monthPickerModal');
 const calendarTitleBtn = document.getElementById('calendarTitleBtn');
-const pickerYearEl = document.getElementById('pickerYear');
+const yearGrid = document.getElementById('yearGrid');
+const yearScrollContainer = document.getElementById('yearScrollContainer');
 const monthGrid = document.getElementById('monthGrid');
+
+// 연도 범위 (현재 연도 기준 위아래로 확장)
+let yearRangeStart = new Date().getFullYear() - 5;
+let yearRangeEnd = new Date().getFullYear();
 
 calendarTitleBtn.addEventListener('click', () => {
     pickerYear = calendarYear;
+    // 연도 범위 초기화 (현재 선택 연도 포함하도록)
+    yearRangeStart = Math.min(yearRangeStart, pickerYear - 2);
+    yearRangeEnd = Math.max(yearRangeEnd, pickerYear);
+    renderYearGrid();
     renderMonthPicker();
     monthPickerModal.classList.add('show');
+    // 선택된 연도로 스크롤
+    setTimeout(() => {
+        const selectedYear = yearGrid.querySelector('.year-btn.current');
+        if (selectedYear) selectedYear.scrollIntoView({ block: 'center' });
+    }, 50);
 });
 
 document.getElementById('closeMonthPicker').addEventListener('click', () => monthPickerModal.classList.remove('show'));
 monthPickerModal.addEventListener('click', e => { if (e.target === monthPickerModal) monthPickerModal.classList.remove('show'); });
 
-document.getElementById('prevYear').addEventListener('click', () => { pickerYear--; renderMonthPicker(); });
-document.getElementById('nextYear').addEventListener('click', () => { pickerYear++; renderMonthPicker(); });
+function renderYearGrid() {
+    const years = [];
+    for (let y = yearRangeEnd; y >= yearRangeStart; y--) {
+        years.push(y);
+    }
+    yearGrid.innerHTML = years.map(y => {
+        const isCurrent = y === pickerYear;
+        return `<button class="year-btn ${isCurrent ? 'current' : ''}" data-year="${y}">${y}년</button>`;
+    }).join('');
+}
+
+// 연도 스크롤 시 추가 로드 (무한 스크롤)
+yearScrollContainer.addEventListener('scroll', () => {
+    const { scrollTop, scrollHeight, clientHeight } = yearScrollContainer;
+    // 상단 끝 도달 시 미래 연도 추가 (현재 연도까지만)
+    if (scrollTop < 20) {
+        const currentYear = new Date().getFullYear();
+        if (yearRangeEnd < currentYear) {
+            yearRangeEnd = Math.min(yearRangeEnd + 3, currentYear);
+            renderYearGrid();
+        }
+    }
+    // 하단 끝 도달 시 과거 연도 추가
+    if (scrollTop + clientHeight >= scrollHeight - 20) {
+        yearRangeStart -= 3;
+        renderYearGrid();
+    }
+});
+
+yearGrid.addEventListener('click', e => {
+    if (e.target.classList.contains('year-btn')) {
+        pickerYear = parseInt(e.target.dataset.year);
+        renderYearGrid();
+        renderMonthPicker();
+    }
+});
 
 function renderMonthPicker() {
-    pickerYearEl.textContent = pickerYear + '년';
     const months = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
     monthGrid.innerHTML = months.map((m, i) => {
         const isCurrent = pickerYear === calendarYear && i === calendarMonth;
@@ -152,16 +274,27 @@ const dayExercises = document.getElementById('dayExercises');
 
 function getExercisesForDate(dateStr) {
     const result = [];
+    const exerciseMap = {};
+
+    // 해당 날짜의 모든 기록 필터링
+    const dayRecords = data.records.filter(r => getDateFromDatetime(r.datetime) === dateStr);
+
+    for (const record of dayRecords) {
+        if (!exerciseMap[record.exercise]) {
+            exerciseMap[record.exercise] = [];
+        }
+        exerciseMap[record.exercise].push(record);
+    }
+
+    // exercises 순서대로 결과 구성
     for (const exercise of data.exercises) {
-        const records = data.records[exercise] || [];
-        const dayRecords = records.filter(r => r.d === dateStr);
-        if (dayRecords.length > 0) {
+        if (exerciseMap[exercise] && exerciseMap[exercise].length > 0) {
             result.push({
                 name: exercise,
                 color: data.colors[exercise] || '#007aff',
                 memo: data.memos[exercise] || '',
-                sets: dayRecords.length,
-                records: dayRecords
+                sets: exerciseMap[exercise].length,
+                records: exerciseMap[exercise]
             });
         }
     }
@@ -170,11 +303,16 @@ function getExercisesForDate(dateStr) {
 
 function getExerciseColorsForDate(dateStr) {
     const colors = [];
-    for (const exercise of data.exercises) {
-        const records = data.records[exercise] || [];
-        if (records.some(r => r.d === dateStr)) colors.push(data.colors[exercise] || '#007aff');
+    const seen = new Set();
+
+    for (const record of data.records) {
+        if (getDateFromDatetime(record.datetime) === dateStr && !seen.has(record.exercise)) {
+            seen.add(record.exercise);
+            colors.push(data.colors[record.exercise] || '#007aff');
+            if (colors.length >= 4) break;
+        }
     }
-    return colors.slice(0, 4);
+    return colors;
 }
 
 function renderMonthDays(year, month, container) {
@@ -293,11 +431,9 @@ function deleteExerciseForDate(exerciseName, dateStr) {
     const date = parseLocalDate(dateStr);
     const dateLabel = `${date.getMonth() + 1}월 ${date.getDate()}일`;
     if (!confirm(`"${exerciseName}" ${dateLabel} 기록을 삭제할까요?`)) return;
-    if (data.records[exerciseName]) {
-        data.records[exerciseName] = data.records[exerciseName].filter(r => r.d !== dateStr);
-        save();
-        showDayDetail(dateStr);
-    }
+    data.records = data.records.filter(r => !(r.exercise === exerciseName && getDateFromDatetime(r.datetime) === dateStr));
+    save();
+    showDayDetail(dateStr);
 }
 
 // 해당 날짜의 모든 운동 기록 삭제
@@ -305,11 +441,7 @@ function clearAllForDate(dateStr) {
     const date = parseLocalDate(dateStr);
     const dateLabel = dateStr === today ? '오늘' : `${date.getMonth() + 1}월 ${date.getDate()}일`;
     if (!confirm(`${dateLabel}의 모든 운동 기록을 삭제할까요?\n(${getExercisesForDate(dateStr).map(e => e.name).join(', ')})`)) return;
-    for (const exercise of data.exercises) {
-        if (data.records[exercise]) {
-            data.records[exercise] = data.records[exercise].filter(r => r.d !== dateStr);
-        }
-    }
+    data.records = data.records.filter(r => getDateFromDatetime(r.datetime) !== dateStr);
     save();
     showDayDetail(dateStr);
 }
@@ -330,8 +462,8 @@ const feedView = document.getElementById('feedView');
 
 function getAllRecordDates() {
     const dates = new Set();
-    for (const exercise of data.exercises) {
-        (data.records[exercise] || []).forEach(r => dates.add(r.d));
+    for (const record of data.records) {
+        dates.add(getDateFromDatetime(record.datetime));
     }
     return Array.from(dates).sort().reverse();
 }
@@ -470,8 +602,7 @@ function renderMain(searchQuery = '') {
     }
 
     exerciseList.innerHTML = sortedExercises.map(name => {
-        const records = data.records[name] || [];
-        const todayCount = records.filter(r => r.d === today).length;
+        const todayCount = data.records.filter(r => r.exercise === name && getDateFromDatetime(r.datetime) === today).length;
         const color = data.colors[name] || '#007aff';
         const memo = data.memos[name] || '';
         return `
@@ -504,40 +635,85 @@ document.getElementById('sortToggle').addEventListener('click', e => {
     }
 });
 
+// 기록 페이지네이션 상태
+let recordsPage = 0;
+const RECORDS_PER_PAGE = 20;
+let allSortedDates = [];
+let recordsByDate = {};
+let isHistoryVisible = false;
+
 function renderDetail(filterDate = null) {
-    const records = data.records[currentExercise] || [];
-    const byDate = {};
-    records.forEach((r, i) => {
-        if (filterDate && r.d !== filterDate) return;
-        if (!byDate[r.d]) byDate[r.d] = [];
-        byDate[r.d].push({ ...r, idx: i });
+    // 현재 운동의 기록만 필터링
+    const exerciseRecords = data.records.filter(r => r.exercise === currentExercise);
+    recordsByDate = {};
+
+    exerciseRecords.forEach(r => {
+        const dateStr = getDateFromDatetime(r.datetime);
+        if (filterDate && dateStr !== filterDate) return;
+        if (!recordsByDate[dateStr]) recordsByDate[dateStr] = [];
+        recordsByDate[dateStr].push({ ...r });
     });
 
-    const dates = Object.keys(byDate).sort().reverse();
-    if (dates.length === 0) {
+    allSortedDates = Object.keys(recordsByDate).sort().reverse();
+    recordsPage = 0;
+
+    // 기록 개수 표시
+    const totalRecords = exerciseRecords.length;
+    const historyToggleText = document.getElementById('historyToggleText');
+    if (historyToggleText) {
+        historyToggleText.textContent = isHistoryVisible ? `숨기기 (${totalRecords})` : `보기 (${totalRecords})`;
+    }
+
+    if (allSortedDates.length === 0) {
         setList.innerHTML = '<div class="empty">기록이 없습니다</div>';
+        document.getElementById('loadMoreIndicator').classList.add('hidden');
         return;
     }
 
-    setList.innerHTML = dates.map(date => {
-        const sets = byDate[date];
+    // 첫 페이지 렌더링
+    setList.innerHTML = '';
+    loadMoreRecords();
+}
+
+function loadMoreRecords() {
+    const startIdx = recordsPage * RECORDS_PER_PAGE;
+    const endIdx = startIdx + RECORDS_PER_PAGE;
+    const datesToRender = allSortedDates.slice(startIdx, endIdx);
+
+    if (datesToRender.length === 0) {
+        document.getElementById('loadMoreIndicator').classList.add('hidden');
+        return;
+    }
+
+    const html = datesToRender.map(date => {
+        const sets = recordsByDate[date];
+        // 시간순 정렬
+        sets.sort((a, b) => a.datetime.localeCompare(b.datetime));
         const dateLabel = date === today ? '오늘' : date;
         return `
             <div class="date-label">${dateLabel}</div>
             ${sets.map((s, i) => `
-                <div class="set-item">
+                <div class="set-item" data-id="${s.id}">
                     <div>
                         <span class="info"><strong>${s.w}kg</strong> x ${s.r}reps</span>
                         ${s.m ? `<div class="set-memo">${s.m}</div>` : ''}
                     </div>
                     <div>
                         <span class="meta">Set ${i + 1}</span>
-                        <button class="delete-btn" data-idx="${s.idx}">×</button>
+                        <button class="edit-btn" data-id="${s.id}">✏️</button>
+                        <button class="delete-btn" data-id="${s.id}">×</button>
                     </div>
                 </div>
             `).join('')}
         `;
     }).join('');
+
+    setList.insertAdjacentHTML('beforeend', html);
+    recordsPage++;
+
+    // 더 로드할 데이터 있는지 확인
+    const hasMore = endIdx < allSortedDates.length;
+    document.getElementById('loadMoreIndicator').classList.toggle('hidden', !hasMore);
 }
 
 function showMain() {
@@ -570,6 +746,12 @@ function showDetail(name, date = null) {
     weightInput.value = '';
     repsInput.value = '';
     setMemoInput.value = '';
+
+    // 기록 토글 상태 초기화 (숨김)
+    isHistoryVisible = false;
+    document.getElementById('historyToggleBtn').classList.remove('active');
+    document.getElementById('setListContainer').classList.add('hidden');
+
     renderDetail(date);
 }
 
@@ -617,8 +799,8 @@ function addExercise() {
     }
     data.exercises.push(name);
     data.colors[name] = newExerciseColor;
-    data.records[name] = [];
     data.memos[name] = newExerciseMemoInput.value.trim();
+    // records는 이제 플랫 배열이므로 별도 초기화 불필요
     save();
     renderMain();
     currentViewMode === 'calendar' ? renderCalendar() : renderFeedView();
@@ -641,7 +823,8 @@ exerciseList.addEventListener('click', e => {
         data.exercises = data.exercises.filter(n => n !== name);
         delete data.colors[name];
         delete data.memos[name];
-        delete data.records[name];
+        // 해당 운동의 모든 기록 삭제
+        data.records = data.records.filter(r => r.exercise !== name);
         save();
         renderMain();
         currentViewMode === 'calendar' ? renderCalendar() : renderFeedView();
@@ -676,11 +859,13 @@ function startEditTitle() {
 
         if (data.exercises.includes(newName)) {
             if (confirm(`"${newName}" 이미 존재합니다. 합칠까요?`)) {
-                data.records[newName] = [...data.records[newName], ...data.records[currentName]];
+                // 기존 운동의 기록들을 새 운동명으로 변경
+                data.records.forEach(r => {
+                    if (r.exercise === currentName) r.exercise = newName;
+                });
                 data.exercises = data.exercises.filter(n => n !== currentName);
                 delete data.colors[currentName];
                 delete data.memos[currentName];
-                delete data.records[currentName];
                 currentExercise = newName;
                 detailTitle.textContent = newName;
                 exerciseMemo.value = data.memos[newName] || '';
@@ -694,8 +879,10 @@ function startEditTitle() {
             delete data.colors[currentName];
             data.memos[newName] = data.memos[currentName];
             delete data.memos[currentName];
-            data.records[newName] = data.records[currentName];
-            delete data.records[currentName];
+            // 기록의 운동명도 변경
+            data.records.forEach(r => {
+                if (r.exercise === currentName) r.exercise = newName;
+            });
             currentExercise = newName;
             detailTitle.textContent = newName;
             save();
@@ -758,9 +945,15 @@ function addSet() {
     if (isNaN(w) || w < 0) { weightInput.focus(); return; }
     if (isNaN(r) || r <= 0) { repsInput.focus(); return; }
 
-    const record = { d, w, r };
-    if (m) record.m = m;
-    data.records[currentExercise].push(record);
+    const record = {
+        id: generateId(),
+        datetime: createDatetime(d),
+        exercise: currentExercise,
+        w: w,
+        r: r,
+        m: m || null
+    };
+    data.records.push(record);
     save();
     renderDetail();
     currentViewMode === 'calendar' ? renderCalendar() : renderFeedView();
@@ -773,15 +966,101 @@ function addSet() {
 document.getElementById('addSetBtn').addEventListener('click', addSet);
 [weightInput, repsInput].forEach(el => el.addEventListener('keydown', e => { if (e.key === 'Enter') addSet(); }));
 
+// 기록 토글 버튼
+const historyToggleBtn = document.getElementById('historyToggleBtn');
+const setListContainer = document.getElementById('setListContainer');
+
+historyToggleBtn.addEventListener('click', () => {
+    isHistoryVisible = !isHistoryVisible;
+    historyToggleBtn.classList.toggle('active', isHistoryVisible);
+    setListContainer.classList.toggle('hidden', !isHistoryVisible);
+    const historyToggleText = document.getElementById('historyToggleText');
+    const totalRecords = data.records.filter(r => r.exercise === currentExercise).length;
+    historyToggleText.textContent = isHistoryVisible ? `숨기기 (${totalRecords})` : `보기 (${totalRecords})`;
+});
+
+// 기록 무한 스크롤
+setListContainer.addEventListener('scroll', () => {
+    const { scrollTop, scrollHeight, clientHeight } = setListContainer;
+    if (scrollTop + clientHeight >= scrollHeight - 50) {
+        loadMoreRecords();
+    }
+});
+
 setList.addEventListener('click', e => {
+    // 삭제 버튼
     if (e.target.classList.contains('delete-btn')) {
-        const idx = parseInt(e.target.dataset.idx);
-        data.records[currentExercise].splice(idx, 1);
+        const id = e.target.dataset.id;
+        const idx = data.records.findIndex(r => r.id === id);
+        if (idx !== -1) {
+            data.records.splice(idx, 1);
+            save();
+            renderDetail();
+            currentViewMode === 'calendar' ? renderCalendar() : renderFeedView();
+        }
+        return;
+    }
+    // 편집 버튼
+    if (e.target.classList.contains('edit-btn')) {
+        const id = e.target.dataset.id;
+        openEditSetModal(id);
+        return;
+    }
+});
+
+// 세트 편집 모달
+const setEditModal = document.getElementById('setEditModal');
+const editWeightInput = document.getElementById('editWeight');
+const editRepsInput = document.getElementById('editReps');
+const editSetMemoInput = document.getElementById('editSetMemo');
+let editingSetId = null;
+
+function openEditSetModal(id) {
+    const record = data.records.find(r => r.id === id);
+    if (!record) return;
+
+    editingSetId = id;
+    editWeightInput.value = record.w;
+    editRepsInput.value = record.r;
+    editSetMemoInput.value = record.m || '';
+    setEditModal.classList.add('show');
+}
+
+function closeEditSetModal() {
+    setEditModal.classList.remove('show');
+    editingSetId = null;
+}
+
+function saveEditSet() {
+    if (!editingSetId) return;
+
+    const w = parseFloat(editWeightInput.value) || 0;
+    const r = parseInt(editRepsInput.value) || 0;
+    const m = editSetMemoInput.value.trim();
+
+    if (r <= 0) {
+        editRepsInput.focus();
+        return;
+    }
+
+    const record = data.records.find(r => r.id === editingSetId);
+    if (record) {
+        record.w = w;
+        record.r = r;
+        record.m = m || null;
         save();
         renderDetail();
         currentViewMode === 'calendar' ? renderCalendar() : renderFeedView();
     }
-});
+    closeEditSetModal();
+}
+
+document.getElementById('closeSetEdit').addEventListener('click', closeEditSetModal);
+document.getElementById('cancelSetEdit').addEventListener('click', closeEditSetModal);
+document.getElementById('saveSetEdit').addEventListener('click', saveEditSet);
+setEditModal.addEventListener('click', e => { if (e.target === setEditModal) closeEditSetModal(); });
+validateInput(editWeightInput, true);
+validateInput(editRepsInput, false);
 
 // Chart
 const chartSelect = document.getElementById('chartExerciseSelect');
@@ -889,15 +1168,16 @@ chartSelect.addEventListener('change', () => {
 });
 
 function renderCharts(exercise) {
-    const records = data.records[exercise] || [];
+    const records = data.records.filter(r => r.exercise === exercise);
     if (records.length === 0) { chartContent.classList.add('hidden'); chartEmpty.textContent = '기록이 없습니다'; chartEmpty.classList.remove('hidden'); return; }
 
     const range = getDateRange(currentChartPeriod);
     const byDate = {};
     records.forEach(r => {
-        if (r.d >= range.start && r.d <= range.end) {
-            if (!byDate[r.d]) byDate[r.d] = [];
-            byDate[r.d].push(r);
+        const dateStr = getDateFromDatetime(r.datetime);
+        if (dateStr >= range.start && dateStr <= range.end) {
+            if (!byDate[dateStr]) byDate[dateStr] = [];
+            byDate[dateStr].push(r);
         }
     });
     const dates = Object.keys(byDate).sort();
@@ -1219,8 +1499,8 @@ if (!data.achievements) data.achievements = {};
 
 function getAllRecordDatesForAchievements() {
     const dates = new Set();
-    for (const exercise of data.exercises) {
-        (data.records[exercise] || []).forEach(r => dates.add(r.d));
+    for (const record of data.records) {
+        dates.add(getDateFromDatetime(record.datetime));
     }
     return [...dates].sort();
 }
@@ -1241,46 +1521,46 @@ function getWeekDates(date) {
 
 function getWeekVolume(weekDates) {
     let total = 0;
-    for (const exercise of data.exercises) {
-        (data.records[exercise] || []).forEach(r => {
-            if (weekDates.includes(r.d)) total += (r.w || 0) * (r.r || 0);
-        });
+    for (const record of data.records) {
+        const dateStr = getDateFromDatetime(record.datetime);
+        if (weekDates.includes(dateStr)) {
+            total += (record.w || 0) * (record.r || 0);
+        }
     }
     return total;
 }
 
 function getWeekWeight(weekDates) {
     let total = 0, count = 0;
-    for (const exercise of data.exercises) {
-        (data.records[exercise] || []).forEach(r => {
-            if (weekDates.includes(r.d) && r.w > 0) { total += r.w; count++; }
-        });
+    for (const record of data.records) {
+        const dateStr = getDateFromDatetime(record.datetime);
+        if (weekDates.includes(dateStr) && record.w > 0) {
+            total += record.w;
+            count++;
+        }
     }
     return count > 0 ? total / count : 0;
 }
 
 function getMonthVolume(year, month) {
     let total = 0;
-    for (const exercise of data.exercises) {
-        (data.records[exercise] || []).forEach(r => {
-            const d = parseLocalDate(r.d);
-            if (d.getFullYear() === year && d.getMonth() === month) {
-                total += (r.w || 0) * (r.r || 0);
-            }
-        });
+    for (const record of data.records) {
+        const d = parseLocalDate(getDateFromDatetime(record.datetime));
+        if (d.getFullYear() === year && d.getMonth() === month) {
+            total += (record.w || 0) * (record.r || 0);
+        }
     }
     return total;
 }
 
 function getMonthWeight(year, month) {
     let total = 0, count = 0;
-    for (const exercise of data.exercises) {
-        (data.records[exercise] || []).forEach(r => {
-            const d = parseLocalDate(r.d);
-            if (d.getFullYear() === year && d.getMonth() === month && r.w > 0) {
-                total += r.w; count++;
-            }
-        });
+    for (const record of data.records) {
+        const d = parseLocalDate(getDateFromDatetime(record.datetime));
+        if (d.getFullYear() === year && d.getMonth() === month && record.w > 0) {
+            total += record.w;
+            count++;
+        }
     }
     return count > 0 ? total / count : 0;
 }
@@ -1469,7 +1749,7 @@ function renderAchievements() {
 
 // INIT - 테스트 데이터 강제 생성
 function generateTestData() {
-    data = { exercises: [], colors: {}, memos: {}, records: {} };
+    data = { exercises: [], colors: {}, memos: {}, records: [], achievements: {} };
     const exercises = [
         { name: '팔굽혀펴기', color: '#ff6b6b' },
         { name: '윗몸일으키기', color: '#51cf66' },
@@ -1481,12 +1761,12 @@ function generateTestData() {
         data.exercises.push(ex.name);
         data.colors[ex.name] = ex.color;
         data.memos[ex.name] = '';
-        data.records[ex.name] = [];
     });
 
     data.memos['팔굽혀펴기'] = '가슴과 삼두를 단련하는 기본 운동';
     data.memos['벤치프레스'] = '가슴 운동의 왕, 바벨 벤치프레스';
 
+    let idCounter = 0;
     const now = new Date();
     for (let i = 30; i >= 0; i--) {
         const d = new Date(now);
@@ -1497,28 +1777,54 @@ function generateTestData() {
             if (Math.random() > 0.3) {
                 const sets = 3 + Math.floor(Math.random() * 3);
                 for (let s = 0; s < sets; s++) {
-                    data.records['팔굽혀펴기'].push({ d: dateStr, w: 1, r: 15 + Math.floor(Math.random() * 20) });
+                    data.records.push({
+                        id: `test_${idCounter++}`,
+                        datetime: `${dateStr}T${String(10 + s).padStart(2, '0')}:00:00`,
+                        exercise: '팔굽혀펴기',
+                        w: 1,
+                        r: 15 + Math.floor(Math.random() * 20),
+                        m: null
+                    });
                 }
             }
             if (Math.random() > 0.4) {
                 const sets = 3 + Math.floor(Math.random() * 2);
                 for (let s = 0; s < sets; s++) {
-                    data.records['윗몸일으키기'].push({ d: dateStr, w: 1, r: 20 + Math.floor(Math.random() * 15) });
+                    data.records.push({
+                        id: `test_${idCounter++}`,
+                        datetime: `${dateStr}T${String(11 + s).padStart(2, '0')}:00:00`,
+                        exercise: '윗몸일으키기',
+                        w: 1,
+                        r: 20 + Math.floor(Math.random() * 15),
+                        m: null
+                    });
                 }
             }
             if (Math.random() > 0.4) {
                 const baseWeight = 40 + Math.floor((30 - i) / 5) * 2.5;
                 const sets = 4 + Math.floor(Math.random() * 2);
                 for (let s = 0; s < sets; s++) {
-                    const rec = { d: dateStr, w: baseWeight + (s < 2 ? 0 : 5), r: 8 + Math.floor(Math.random() * 5) };
-                    if (Math.random() > 0.7) rec.m = '컨디션 좋음';
-                    data.records['벤치프레스'].push(rec);
+                    data.records.push({
+                        id: `test_${idCounter++}`,
+                        datetime: `${dateStr}T${String(14 + s).padStart(2, '0')}:00:00`,
+                        exercise: '벤치프레스',
+                        w: baseWeight + (s < 2 ? 0 : 5),
+                        r: 8 + Math.floor(Math.random() * 5),
+                        m: Math.random() > 0.7 ? '컨디션 좋음' : null
+                    });
                 }
             }
             if (Math.random() > 0.4) {
                 const sets = 3 + Math.floor(Math.random() * 2);
                 for (let s = 0; s < sets; s++) {
-                    data.records['스쿼트'].push({ d: dateStr, w: 1, r: 15 + Math.floor(Math.random() * 10) });
+                    data.records.push({
+                        id: `test_${idCounter++}`,
+                        datetime: `${dateStr}T${String(16 + s).padStart(2, '0')}:00:00`,
+                        exercise: '스쿼트',
+                        w: 1,
+                        r: 15 + Math.floor(Math.random() * 10),
+                        m: null
+                    });
                 }
             }
         }

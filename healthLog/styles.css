@@ -246,23 +246,38 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
     color: #888;
     cursor: pointer;
 }
-.year-selector {
+/* Year scroll selector */
+.month-picker-content {
+    max-height: 70vh;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 20px;
+    flex-direction: column;
+}
+.year-scroll-container {
+    max-height: 120px;
+    overflow-y: auto;
     margin-bottom: 16px;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 12px;
+    -webkit-overflow-scrolling: touch;
 }
-.year-selector button {
-    width: 36px;
-    height: 36px;
+.year-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+}
+.year-btn {
+    padding: 10px 16px;
     border: none;
-    background: #f0f0f0;
-    border-radius: 50%;
-    font-size: 18px;
+    background: #f5f5f7;
+    border-radius: 10px;
+    font-size: 15px;
     cursor: pointer;
+    min-width: 70px;
 }
-.year-selector span { font-size: 20px; font-weight: 600; }
+.year-btn.current { background: #007aff; color: #fff; font-weight: 600; }
+.year-btn:active { background: #e0e0e0; }
+.year-btn.current:active { background: #0066d6; }
 .month-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -279,6 +294,32 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
 .month-btn.current { background: #007aff; color: #fff; }
 .month-btn:active { background: #e0e0e0; }
 .month-btn.current:active { background: #0066d6; }
+
+/* Set Edit Modal */
+.set-edit-form { display: flex; flex-direction: column; gap: 16px; }
+.modal-actions { display: flex; gap: 10px; margin-top: 8px; }
+.modal-btn {
+    flex: 1;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.modal-btn.cancel { background: #e0e0e0; color: #1d1d1f; }
+.modal-btn.save { background: #007aff; color: #fff; }
+.modal-btn:active { opacity: 0.8; }
+
+/* Edit button in set list */
+.set-item .edit-btn {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px 8px;
+    margin-right: 4px;
+}
 
 /* Day Detail */
 .day-detail {
@@ -632,14 +673,51 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
     margin-bottom: 24px;
 }
 
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e0e0e0;
+    margin-bottom: 12px;
+}
 .history-title {
     color: #666;
     font-size: 13px;
     font-weight: 500;
     text-transform: uppercase;
-    margin-bottom: 12px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid #e0e0e0;
+}
+.history-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: #f5f5f7;
+    border: none;
+    border-radius: 20px;
+    font-size: 13px;
+    color: #007aff;
+    cursor: pointer;
+    font-weight: 500;
+}
+.history-toggle-btn:active { background: #e8e8ed; }
+.history-toggle-btn.active { background: #007aff; color: #fff; }
+#historyToggleIcon {
+    font-size: 10px;
+    transition: transform 0.2s;
+}
+.history-toggle-btn.active #historyToggleIcon { transform: rotate(180deg); }
+
+#setListContainer {
+    max-height: 400px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+#loadMoreIndicator {
+    text-align: center;
+    padding: 16px;
+    color: #888;
+    font-size: 14px;
 }
 .set-item {
     display: flex;
