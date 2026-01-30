@@ -83,6 +83,16 @@ let exerciseSortOrder = stored.exerciseSortOrder || 'registered';
 
 function save() { localStorage.setItem(KEY, JSON.stringify(data)); }
 
+// 색상 밝기 계산 (밝으면 true)
+function isLightColor(hex) {
+    const c = hex.replace('#', '');
+    const r = parseInt(c.substring(0, 2), 16);
+    const g = parseInt(c.substring(2, 4), 16);
+    const b = parseInt(c.substring(4, 6), 16);
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    return brightness > 150;
+}
+
 // 로컬 시간대로 날짜 파싱 (UTC 오프셋 문제 해결)
 function parseLocalDate(dateStr) {
     const [y, m, d] = dateStr.split('-').map(Number);
@@ -775,6 +785,7 @@ function showDetail(name, date = null) {
     }
 
     renderDetail(date);
+    updateAddSetBtnColor();
 }
 
 exerciseMemo.addEventListener('blur', () => {
@@ -859,29 +870,56 @@ exerciseList.addEventListener('click', e => {
 document.getElementById('backBtn').addEventListener('click', showMain);
 
 const editTitleBtn = document.getElementById('editTitleBtn');
+let editContainer = null;
+
 function startEditTitle() {
+    if (editContainer) return; // 이미 편집 중
+
     const currentName = currentExercise;
     const header = detailTitle.parentElement;
+
+    // 편집 컨테이너 생성
+    editContainer = document.createElement('div');
+    editContainer.className = 'title-edit-container';
+
     const input = document.createElement('input');
     input.type = 'text';
     input.className = 'title-input';
     input.value = currentName;
+
+    const btnGroup = document.createElement('div');
+    btnGroup.className = 'title-edit-btns';
+
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'title-save-btn';
+    saveBtn.textContent = '수정';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'title-cancel-btn';
+    cancelBtn.textContent = '취소';
+
+    btnGroup.appendChild(saveBtn);
+    btnGroup.appendChild(cancelBtn);
+    editContainer.appendChild(input);
+    editContainer.appendChild(btnGroup);
+
     detailTitle.style.display = 'none';
     editTitleBtn.style.display = 'none';
-    header.insertBefore(input, detailTitle);
+    header.insertBefore(editContainer, detailTitle);
     input.focus();
     input.select();
 
-    function finishEdit() {
+    function finishEdit(shouldSave) {
         const newName = input.value.trim();
-        input.remove();
+        editContainer.remove();
+        editContainer = null;
         detailTitle.style.display = '';
         editTitleBtn.style.display = '';
-        if (!newName || newName === currentName) return;
+
+        if (!shouldSave || !newName || newName === currentName) return;
 
         if (data.exercises.includes(newName)) {
             if (confirm(`"${newName}" 이미 존재합니다. 합칠까요?`)) {
-                // 기존 운동의 기록들을 새 운동명으로 변경
                 data.records.forEach(r => {
                     if (r.exercise === currentName) r.exercise = newName;
                 });
@@ -893,6 +931,7 @@ function startEditTitle() {
                 exerciseMemo.value = data.memos[newName] || '';
                 save();
                 renderDetail();
+                updateAddSetBtnColor();
             }
         } else {
             const idx = data.exercises.indexOf(currentName);
@@ -901,7 +940,6 @@ function startEditTitle() {
             delete data.colors[currentName];
             data.memos[newName] = data.memos[currentName];
             delete data.memos[currentName];
-            // 기록의 운동명도 변경
             data.records.forEach(r => {
                 if (r.exercise === currentName) r.exercise = newName;
             });
@@ -911,15 +949,25 @@ function startEditTitle() {
         }
     }
 
-    input.addEventListener('blur', finishEdit);
+    saveBtn.addEventListener('click', () => finishEdit(true));
+    cancelBtn.addEventListener('click', () => finishEdit(false));
     input.addEventListener('keydown', e => {
-        if (e.key === 'Enter') input.blur();
-        if (e.key === 'Escape') { input.value = currentName; input.blur(); }
+        if (e.key === 'Enter') finishEdit(true);
+        if (e.key === 'Escape') finishEdit(false);
     });
 }
 
 editTitleBtn.addEventListener('click', startEditTitle);
 detailTitle.addEventListener('click', startEditTitle);
+
+// Add Set 버튼 색상을 운동 색상으로 변경
+function updateAddSetBtnColor() {
+    if (!currentExercise) return;
+    const color = data.colors[currentExercise] || '#34c759';
+    const addSetBtn = document.getElementById('addSetBtn');
+    addSetBtn.style.background = color;
+    addSetBtn.style.color = isLightColor(color) ? '#1d1d1f' : '#fff';
+}
 
 // Validation 헬퍼
 function sanitizeNumber(value, allowDecimal = false) {
@@ -1427,6 +1475,7 @@ function handleRoute() {
             }
 
             renderDetail(date);
+            updateAddSetBtnColor();
         } else {
             navigate('record', true);
             isNavigating = false;
