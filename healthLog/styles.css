@@ -843,26 +843,135 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
     font-size: 14px;
 }
 .chart-section {
-    background: #fff;
-    border-radius: 14px;
-    padding: 20px;
+    background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
+    border-radius: 20px;
+    padding: 24px;
     margin-bottom: 16px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+    border: 1px solid rgba(0,0,0,0.04);
 }
-.chart-section h3 { font-size: 14px; color: #666; margin-bottom: 16px; font-weight: 500; }
-.chart-container { height: 200px; position: relative; display: flex; align-items: flex-end; gap: 4px; padding-bottom: 30px; }
-.bar-chart { display: flex; align-items: flex-end; justify-content: space-around; height: 100%; width: 100%; gap: 6px; }
-.bar-item { flex: 1; display: flex; flex-direction: column; align-items: center; max-width: 40px; }
-.bar { width: 100%; background: linear-gradient(to top, #007aff, #5ac8fa); border-radius: 6px 6px 0 0; min-height: 4px; }
-.bar-label { font-size: 10px; color: #888; margin-top: 8px; text-align: center; }
-.bar-value { font-size: 10px; color: #1d1d1f; margin-bottom: 4px; font-weight: 500; }
-.line-chart { position: relative; height: 100%; width: 100%; }
-.line-chart svg { width: 100%; height: 100%; overflow: visible; }
-.line-path { fill: none; stroke: #007aff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.chart-section h3 {
+    font-size: 13px;
+    color: #8e8e93;
+    margin-bottom: 20px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.chart-container {
+    height: 180px;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    padding-bottom: 35px;
+    background: linear-gradient(180deg, transparent 0%, rgba(0,122,255,0.02) 100%);
+    border-radius: 12px;
+}
+.bar-chart {
+    display: flex;
+    align-items: flex-end;
+    height: 100%;
+    gap: 10px;
+    overflow-x: auto;
+    padding: 10px 5px 5px 5px;
+    scroll-behavior: smooth;
+}
+.bar-chart::-webkit-scrollbar { height: 4px; }
+.bar-chart::-webkit-scrollbar-track { background: #f0f0f0; border-radius: 2px; }
+.bar-chart::-webkit-scrollbar-thumb { background: #c0c0c0; border-radius: 2px; }
+.bar-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 42px;
+    flex-shrink: 0;
+    height: 100%;
+    transition: transform 0.2s ease;
+}
+.bar-item:hover { transform: scale(1.05); }
+.bar-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    width: 100%;
+    padding: 0 4px;
+}
+.bar {
+    width: 100%;
+    background: linear-gradient(180deg, #5ac8fa 0%, #007aff 50%, #0051a8 100%);
+    border-radius: 8px 8px 4px 4px;
+    min-height: 6px;
+    box-shadow: 0 2px 8px rgba(0,122,255,0.3);
+    transition: all 0.3s ease;
+}
+.bar-item:hover .bar {
+    box-shadow: 0 4px 16px rgba(0,122,255,0.4);
+}
+.bar-label {
+    font-size: 11px;
+    color: #8e8e93;
+    margin-top: 10px;
+    text-align: center;
+    white-space: nowrap;
+    font-weight: 500;
+}
+.bar-value {
+    font-size: 11px;
+    color: #1d1d1f;
+    margin-bottom: 6px;
+    font-weight: 600;
+    white-space: nowrap;
+    background: rgba(0,122,255,0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+.line-chart {
+    position: relative;
+    height: 100%;
+    width: 100%;
+    padding: 10px;
+}
+.line-chart svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    filter: drop-shadow(0 2px 4px rgba(0,122,255,0.2));
+}
+.line-path {
+    fill: none;
+    stroke: url(#lineStrokeGradient);
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
 .line-area { fill: url(#lineGradient); }
-.line-dot { fill: #007aff; }
-.line-labels { display: flex; justify-content: space-between; position: absolute; bottom: 0; left: 0; right: 0; }
-.line-label { font-size: 10px; color: #888; }
+.line-dot {
+    fill: #fff;
+    stroke: #007aff;
+    stroke-width: 2;
+    filter: drop-shadow(0 2px 4px rgba(0,122,255,0.3));
+    transition: r 0.2s ease;
+}
+.line-dot:hover { r: 5; }
+.line-labels {
+    display: flex;
+    justify-content: space-between;
+    position: absolute;
+    bottom: 5px;
+    left: 10px;
+    right: 10px;
+}
+.line-label {
+    font-size: 11px;
+    color: #8e8e93;
+    font-weight: 500;
+    background: rgba(255,255,255,0.9);
+    padding: 4px 8px;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
 
 /* Achievement */
 .achievement-summary {
