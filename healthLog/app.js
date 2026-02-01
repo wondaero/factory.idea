@@ -1,5 +1,10 @@
 const KEY = 'healthLog';
 const today = new Date().toLocaleDateString('sv-SE');
+
+// 프리미엄 vs 라이트 설정
+let isPremium = false; // 기본값: 라이트
+
+// 전체 색상 (프리미엄)
 const PRESET_COLORS = [
     // 레드/핑크
     '#ff6b6b', '#fa5252', '#e64980', '#f06595', '#ff8787',
@@ -19,55 +24,120 @@ const PRESET_COLORS = [
     '#868e96', '#495057', '#343a40', '#adb5bd', '#dee2e6'
 ];
 
-let stored = JSON.parse(localStorage.getItem(KEY) || '{}');
+// 라이트 색상 (10개 - 각 계열 대표)
+const LITE_COLORS = [
+    '#ff6b6b', // 레드
+    '#cc5de8', // 퍼플
+    '#339af0', // 블루
+    '#20c997', // 시안/그린
+    '#51cf66', // 그린
+    '#fab005', // 옐로우
+    '#ff922b', // 오렌지
+    '#868e96', // 그레이
+    '#e64980', // 핑크
+    '#845ef7'  // 바이올렛
+];
 
-// 데이터 마이그레이션: 기존 객체 구조 → 플랫 배열 구조
+// 현재 사용 가능한 색상 반환
+function getAvailableColors() {
+    return isPremium ? PRESET_COLORS : LITE_COLORS;
+}
+
+// 프리미엄 기능 접근 시 업그레이드 안내
+function showUpgradePrompt(featureName) {
+    alert(`"${featureName}"은(는) 프리미엄 기능입니다.\n프리미엄으로 업그레이드하세요!`);
+}
+
+let stored = JSON.parse(localStorage.getItem(KEY) || '{}');
+isPremium = stored.isPremium || false;
+
+// 데이터 마이그레이션: 기존 구조 → 새 구조 (운동 ID 기반)
 function migrateData(oldData) {
     if (!oldData.exercises || !oldData.records) {
-        return { exercises: [], colors: {}, memos: {}, records: [], achievements: {} };
+        return { exercises: [], records: [], achievements: {} };
     }
 
-    // 이미 새 구조면 그대로 반환
-    if (Array.isArray(oldData.records)) {
+    // 이미 새 구조인지 확인 (exercises가 객체 배열인지)
+    const isNewStructure = Array.isArray(oldData.exercises) &&
+                          oldData.exercises.length > 0 &&
+                          typeof oldData.exercises[0] === 'object' &&
+                          oldData.exercises[0].id;
+
+    if (isNewStructure) {
         return {
-            ...oldData,
-            colors: oldData.colors || {},
-            memos: oldData.memos || {},
+            exercises: oldData.exercises,
+            records: oldData.records,
             achievements: oldData.achievements || {}
         };
     }
 
     // 기존 구조 → 새 구조로 마이그레이션
-    const newRecords = [];
-    let idCounter = 0;
+    const baseTimestamp = Date.now();
+    const newExercises = [];
+    const exerciseIdMap = {}; // 운동 이름 → ID 매핑
 
-    for (const exercise of oldData.exercises) {
-        const exerciseRecords = oldData.records[exercise] || [];
-        for (const record of exerciseRecords) {
-            // 기존 d (날짜만) → datetime (시간 포함)
-            // 기존 데이터는 시간 정보가 없으므로 정오(12:00)로 설정 + 순서대로 1초씩 추가
-            const datetime = `${record.d}T12:00:${String(idCounter % 60).padStart(2, '0')}`;
-            newRecords.push({
-                id: `migrated_${idCounter++}`,
-                datetime: datetime,
-                exercise: exercise,
-                w: record.w,
-                r: record.r,
-                m: record.m || null
+    // 운동 목록을 객체 배열로 변환
+    if (Array.isArray(oldData.exercises)) {
+        oldData.exercises.forEach((name, idx) => {
+            const id = String(baseTimestamp + idx);
+            exerciseIdMap[name] = id;
+            newExercises.push({
+                id: id,
+                name: name,
+                color: (oldData.colors && oldData.colors[name]) || '#007aff',
+                memo: (oldData.memos && oldData.memos[name]) || ''
             });
-        }
+        });
     }
 
-    // datetime 기준 정렬
-    newRecords.sort((a, b) => a.datetime.localeCompare(b.datetime));
+    // 기록 마이그레이션
+    let newRecords = [];
+
+    if (Array.isArray(oldData.records)) {
+        // records가 이미 플랫 배열인 경우 (exercise → exerciseId 변환)
+        newRecords = oldData.records.map(record => ({
+            id: record.id,
+            datetime: record.datetime,
+            exerciseId: exerciseIdMap[record.exercise] || record.exercise,
+            w: record.w,
+            r: record.r,
+            m: record.m || null
+        }));
+    } else {
+        // records가 객체인 경우 (구 구조)
+        let idCounter = 0;
+        for (const exercise of (oldData.exercises || [])) {
+            const exerciseRecords = oldData.records[exercise] || [];
+            for (const record of exerciseRecords) {
+                const datetime = `${record.d}T12:00:${String(idCounter % 60).padStart(2, '0')}`;
+                newRecords.push({
+                    id: `migrated_${idCounter++}`,
+                    datetime: datetime,
+                    exerciseId: exerciseIdMap[exercise],
+                    w: record.w,
+                    r: record.r,
+                    m: record.m || null
+                });
+            }
+        }
+        newRecords.sort((a, b) => a.datetime.localeCompare(b.datetime));
+    }
 
     return {
-        exercises: oldData.exercises,
-        colors: oldData.colors || {},
-        memos: oldData.memos || {},
+        exercises: newExercises,
         records: newRecords,
         achievements: oldData.achievements || {}
     };
+}
+
+// 헬퍼 함수: ID로 운동 조회
+function getExerciseById(id) {
+    return data.exercises.find(ex => ex.id === id);
+}
+
+// 헬퍼 함수: 이름으로 운동 조회
+function getExerciseByName(name) {
+    return data.exercises.find(ex => ex.name === name);
 }
 
 let data = migrateData(stored);
@@ -81,7 +151,20 @@ let isFromCalendar = false;
 let pickerYear = calendarYear;
 let exerciseSortOrder = stored.exerciseSortOrder || 'registered';
 
-function save() { localStorage.setItem(KEY, JSON.stringify(data)); }
+function save() {
+    localStorage.setItem(KEY, JSON.stringify({ ...data, isPremium }));
+}
+
+// 프리미엄 토글 (테스트용 - 콘솔에서 togglePremium() 호출)
+function togglePremium() {
+    isPremium = !isPremium;
+    save();
+    updateTabButtons();
+    renderColorPicker();
+    if (typeof updateChartPeriodButtons === 'function') updateChartPeriodButtons();
+    console.log(`프리미엄 모드: ${isPremium ? 'ON' : 'OFF'}`);
+    return isPremium;
+}
 
 // 색상 밝기 계산 (밝으면 true)
 function isLightColor(hex) {
@@ -139,14 +222,36 @@ const tabs = { record: document.getElementById('recordTab'), chart: document.get
 const tabButtons = document.querySelectorAll('.tab-item');
 
 function switchTab(tabName) {
+    // 타이머 탭은 프리미엄 전용
+    if (tabName === 'timer' && !isPremium) {
+        showUpgradePrompt('타이머');
+        return;
+    }
+
     Object.values(tabs).forEach(t => t.classList.add('hidden'));
     tabs[tabName].classList.remove('hidden');
     tabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tabName));
-    if (tabName === 'chart') updateChartSelect();
+    if (tabName === 'chart') {
+        updateChartSelect();
+        updateChartPeriodButtons();
+    }
     if (tabName === 'record') currentViewMode === 'calendar' ? renderCalendar() : renderFeedView();
     if (tabName === 'settings') renderMain();
     if (tabName === 'achievement') renderAchievements();
 }
+
+// 타이머 탭 버튼 비활성화 표시
+function updateTabButtons() {
+    tabButtons.forEach(btn => {
+        if (btn.dataset.tab === 'timer' && !isPremium) {
+            btn.classList.add('premium-locked');
+        } else {
+            btn.classList.remove('premium-locked');
+        }
+    });
+}
+updateTabButtons();
+
 tabButtons.forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
 
 // View Mode Toggle
@@ -291,21 +396,22 @@ function getExercisesForDate(dateStr) {
     const dayRecords = data.records.filter(r => getDateFromDatetime(r.datetime) === dateStr);
 
     for (const record of dayRecords) {
-        if (!exerciseMap[record.exercise]) {
-            exerciseMap[record.exercise] = [];
+        if (!exerciseMap[record.exerciseId]) {
+            exerciseMap[record.exerciseId] = [];
         }
-        exerciseMap[record.exercise].push(record);
+        exerciseMap[record.exerciseId].push(record);
     }
 
     // exercises 순서대로 결과 구성
     for (const exercise of data.exercises) {
-        if (exerciseMap[exercise] && exerciseMap[exercise].length > 0) {
+        if (exerciseMap[exercise.id] && exerciseMap[exercise.id].length > 0) {
             result.push({
-                name: exercise,
-                color: data.colors[exercise] || '#007aff',
-                memo: data.memos[exercise] || '',
-                sets: exerciseMap[exercise].length,
-                records: exerciseMap[exercise]
+                id: exercise.id,
+                name: exercise.name,
+                color: exercise.color || '#007aff',
+                memo: exercise.memo || '',
+                sets: exerciseMap[exercise.id].length,
+                records: exerciseMap[exercise.id]
             });
         }
     }
@@ -317,9 +423,10 @@ function getExerciseColorsForDate(dateStr) {
     const seen = new Set();
 
     for (const record of data.records) {
-        if (getDateFromDatetime(record.datetime) === dateStr && !seen.has(record.exercise)) {
-            seen.add(record.exercise);
-            colors.push(data.colors[record.exercise] || '#007aff');
+        if (getDateFromDatetime(record.datetime) === dateStr && !seen.has(record.exerciseId)) {
+            seen.add(record.exerciseId);
+            const exercise = getExerciseById(record.exerciseId);
+            colors.push(exercise?.color || '#007aff');
             if (colors.length >= 4) break;
         }
     }
@@ -392,7 +499,7 @@ function showDayDetail(dateStr) {
         dayExercises.innerHTML = '<div class="empty" style="padding:20px">기록이 없습니다</div>';
     } else {
         dayExercises.innerHTML = exercises.map(ex => `
-            <div class="day-exercise-item" data-exercise="${ex.name}">
+            <div class="day-exercise-item" data-exercise-id="${ex.id}">
                 <span class="color-dot" style="background:${ex.color}"></span>
                 <div class="exercise-info">
                     <div class="exercise-name">${ex.name}</div>
@@ -400,7 +507,7 @@ function showDayDetail(dateStr) {
                     ${ex.memo ? `<div class="exercise-memo">${ex.memo}</div>` : ''}
                 </div>
                 <span class="arrow">›</span>
-                <button class="delete-btn" data-delete="${ex.name}">×</button>
+                <button class="delete-btn" data-delete-id="${ex.id}">×</button>
             </div>
         `).join('');
     }
@@ -438,11 +545,13 @@ document.getElementById('closeDayDetail').addEventListener('click', () => {
 document.getElementById('dayAddBtn').addEventListener('click', () => switchTab('settings'));
 
 // 해당 날짜의 특정 운동 기록 삭제
-function deleteExerciseForDate(exerciseName, dateStr) {
+function deleteExerciseForDate(exerciseId, dateStr) {
+    const exercise = getExerciseById(exerciseId);
+    const exerciseName = exercise?.name || '운동';
     const date = parseLocalDate(dateStr);
     const dateLabel = `${date.getMonth() + 1}월 ${date.getDate()}일`;
     if (!confirm(`"${exerciseName}" ${dateLabel} 기록을 삭제할까요?`)) return;
-    data.records = data.records.filter(r => !(r.exercise === exerciseName && getDateFromDatetime(r.datetime) === dateStr));
+    data.records = data.records.filter(r => !(r.exerciseId === exerciseId && getDateFromDatetime(r.datetime) === dateStr));
     save();
     showDayDetail(dateStr);
 }
@@ -462,11 +571,11 @@ dayExercises.addEventListener('click', e => {
     const deleteBtn = e.target.closest('.delete-btn');
     if (deleteBtn) {
         e.stopPropagation();
-        deleteExerciseForDate(deleteBtn.dataset.delete, selectedDate);
+        deleteExerciseForDate(deleteBtn.dataset.deleteId, selectedDate);
         return;
     }
     const item = e.target.closest('.day-exercise-item');
-    if (item) showDetail(item.dataset.exercise, selectedDate);
+    if (item) showDetailById(item.dataset.exerciseId, selectedDate);
 });
 // Feed View
 const feedView = document.getElementById('feedView');
@@ -507,7 +616,7 @@ function renderFeedView() {
                 </div>
                 <div class="feed-exercises">
                     ${exercises.map(ex => `
-                        <div class="feed-exercise" style="border-left-color: ${ex.color}" data-exercise="${ex.name}" data-date="${dateStr}">
+                        <div class="feed-exercise" style="border-left-color: ${ex.color}" data-exercise-id="${ex.id}" data-date="${dateStr}">
                             <div class="feed-exercise-header">
                                 <span class="feed-exercise-color" style="background: ${ex.color}"></span>
                                 <span class="feed-exercise-name">${ex.name}</span>
@@ -538,7 +647,7 @@ feedView.addEventListener('click', e => {
         return;
     }
     const exerciseEl = e.target.closest('.feed-exercise');
-    if (exerciseEl) showDetail(exerciseEl.dataset.exercise, exerciseEl.dataset.date);
+    if (exerciseEl) showDetailById(exerciseEl.dataset.exerciseId, exerciseEl.dataset.date);
 });
 
 // Exercise List & Detail
@@ -561,8 +670,21 @@ const colorPickerDropdown = document.getElementById('colorPickerDropdown');
 const newExerciseNameInput = document.getElementById('newExerciseName');
 const newExerciseMemoInput = document.getElementById('newExerciseMemo');
 
+// 색상 선택 그리드 렌더링
+function renderColorPicker() {
+    const colors = getAvailableColors();
+    colorPickerGrid.innerHTML = colors.map(c =>
+        `<div class="color-option" data-color="${c}" style="background:${c}"></div>`
+    ).join('');
+
+    // 프리미엄이 아니면 "더 많은 색상" 버튼 추가
+    if (!isPremium) {
+        colorPickerGrid.innerHTML += `<div class="color-option premium-more" data-premium="true">+${PRESET_COLORS.length - LITE_COLORS.length}</div>`;
+    }
+}
+
 // 색상 선택 그리드 초기화
-colorPickerGrid.innerHTML = PRESET_COLORS.map(c => `<div class="color-option" data-color="${c}" style="background:${c}"></div>`).join('');
+renderColorPicker();
 let newExerciseColor = '#007aff';
 
 function selectNewExerciseColor(color) {
@@ -578,6 +700,11 @@ colorPreviewBtn.addEventListener('click', () => {
 
 colorPickerGrid.addEventListener('click', e => {
     if (e.target.classList.contains('color-option')) {
+        // 프리미엄 업그레이드 버튼 클릭
+        if (e.target.dataset.premium === 'true') {
+            showUpgradePrompt('더 많은 색상');
+            return;
+        }
         selectNewExerciseColor(e.target.dataset.color);
         colorPickerDropdown.classList.add('hidden');
     }
@@ -598,13 +725,13 @@ function renderMain(searchQuery = '') {
     let filteredExercises = data.exercises;
     if (searchQuery) {
         const query = searchQuery.toLowerCase();
-        filteredExercises = data.exercises.filter(name => name.toLowerCase().includes(query));
+        filteredExercises = data.exercises.filter(ex => ex.name.toLowerCase().includes(query));
     }
 
     // 정렬 적용
     let sortedExercises = [...filteredExercises];
     if (exerciseSortOrder === 'name') {
-        sortedExercises.sort((a, b) => a.localeCompare(b, 'ko'));
+        sortedExercises.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
     }
 
     if (sortedExercises.length === 0) {
@@ -612,22 +739,20 @@ function renderMain(searchQuery = '') {
         return;
     }
 
-    exerciseList.innerHTML = sortedExercises.map(name => {
-        const todayCount = data.records.filter(r => r.exercise === name && getDateFromDatetime(r.datetime) === today).length;
-        const color = data.colors[name] || '#007aff';
-        const memo = data.memos[name] || '';
+    exerciseList.innerHTML = sortedExercises.map(ex => {
+        const todayCount = data.records.filter(r => r.exerciseId === ex.id && getDateFromDatetime(r.datetime) === today).length;
         return `
-            <div class="list-item" data-name="${name}" style="border-left-color:${color}">
+            <div class="list-item" data-id="${ex.id}" style="border-left-color:${ex.color}">
                 <div style="display:flex;align-items:center">
-                    <div class="color-dot" style="background:${color}"></div>
+                    <div class="color-dot" style="background:${ex.color}"></div>
                     <div>
-                        <h3>${name}</h3>
+                        <h3>${ex.name}</h3>
                         <span class="count">오늘 ${todayCount}세트</span>
-                        ${memo ? `<div class="item-memo">${memo}</div>` : ''}
+                        ${ex.memo ? `<div class="item-memo">${ex.memo}</div>` : ''}
                     </div>
                 </div>
                 <div>
-                    <button class="delete-btn" data-name="${name}">×</button>
+                    <button class="delete-btn" data-id="${ex.id}">×</button>
                     <span class="arrow">›</span>
                 </div>
             </div>
@@ -654,8 +779,8 @@ let recordsByDate = {};
 let isHistoryVisible = false;
 
 function renderDetail(filterDate = null) {
-    // 현재 운동의 기록만 필터링
-    const exerciseRecords = data.records.filter(r => r.exercise === currentExercise);
+    // 현재 운동의 기록만 필터링 (currentExercise는 이제 ID)
+    const exerciseRecords = data.records.filter(r => r.exerciseId === currentExercise);
     recordsByDate = {};
 
     exerciseRecords.forEach(r => {
@@ -741,18 +866,21 @@ function showMain() {
     currentViewMode === 'calendar' ? renderCalendar() : renderFeedView();
 }
 
-function showDetail(name, date = null) {
-    currentExercise = name;
-    detailTitle.textContent = name;
+// ID 기반 상세 보기
+function showDetailById(id, date = null) {
+    const exercise = getExerciseById(id);
+    if (!exercise) return;
+
+    currentExercise = id; // 이제 ID를 저장
+    detailTitle.textContent = exercise.name;
     mainPage.classList.add('hidden');
     detailPage.classList.remove('hidden');
     addExercisePage.classList.add('hidden');
     dayDetail.classList.add('hidden');
 
-    const memo = data.memos[name] || '';
-    exerciseMemo.value = memo;
-    if (memo) {
-        exerciseMemoDisplay.textContent = memo;
+    exerciseMemo.value = exercise.memo || '';
+    if (exercise.memo) {
+        exerciseMemoDisplay.textContent = exercise.memo;
         exerciseMemoDisplay.classList.remove('hidden');
     } else {
         exerciseMemoDisplay.classList.add('hidden');
@@ -788,16 +916,24 @@ function showDetail(name, date = null) {
     updateAddSetBtnColor();
 }
 
+// 이름 기반 상세 보기 (호환성)
+function showDetail(name, date = null) {
+    const exercise = getExerciseByName(name);
+    if (exercise) showDetailById(exercise.id, date);
+}
+
 exerciseMemo.addEventListener('blur', () => {
     if (currentExercise) {
-        data.memos[currentExercise] = exerciseMemo.value.trim();
-        save();
-        const memo = data.memos[currentExercise];
-        if (memo) {
-            exerciseMemoDisplay.textContent = memo;
-            exerciseMemoDisplay.classList.remove('hidden');
-        } else {
-            exerciseMemoDisplay.classList.add('hidden');
+        const exercise = getExerciseById(currentExercise);
+        if (exercise) {
+            exercise.memo = exerciseMemo.value.trim();
+            save();
+            if (exercise.memo) {
+                exerciseMemoDisplay.textContent = exercise.memo;
+                exerciseMemoDisplay.classList.remove('hidden');
+            } else {
+                exerciseMemoDisplay.classList.add('hidden');
+            }
         }
     }
 });
@@ -826,14 +962,16 @@ function addExercise() {
         alert('운동 이름을 입력하세요');
         return;
     }
-    if (data.exercises.includes(name)) {
+    if (data.exercises.some(ex => ex.name === name)) {
         alert('이미 존재하는 운동입니다');
         return;
     }
-    data.exercises.push(name);
-    data.colors[name] = newExerciseColor;
-    data.memos[name] = newExerciseMemoInput.value.trim();
-    // records는 이제 플랫 배열이므로 별도 초기화 불필요
+    data.exercises.push({
+        id: String(Date.now()),
+        name: name,
+        color: newExerciseColor,
+        memo: newExerciseMemoInput.value.trim()
+    });
     save();
     renderMain();
     currentViewMode === 'calendar' ? renderCalendar() : renderFeedView();
@@ -852,19 +990,19 @@ exerciseSearchInput.addEventListener('input', e => {
 
 exerciseList.addEventListener('click', e => {
     if (e.target.classList.contains('delete-btn')) {
-        const name = e.target.dataset.name;
-        data.exercises = data.exercises.filter(n => n !== name);
-        delete data.colors[name];
-        delete data.memos[name];
+        const id = e.target.dataset.id;
+        const exercise = getExerciseById(id);
+        if (!confirm(`"${exercise?.name}" 운동을 삭제할까요?`)) return;
+        data.exercises = data.exercises.filter(ex => ex.id !== id);
         // 해당 운동의 모든 기록 삭제
-        data.records = data.records.filter(r => r.exercise !== name);
+        data.records = data.records.filter(r => r.exerciseId !== id);
         save();
         renderMain();
         currentViewMode === 'calendar' ? renderCalendar() : renderFeedView();
         return;
     }
     const item = e.target.closest('.list-item');
-    if (item) showDetail(item.dataset.name);
+    if (item) showDetailById(item.dataset.id);
 });
 
 document.getElementById('backBtn').addEventListener('click', showMain);
@@ -875,7 +1013,9 @@ let editContainer = null;
 function startEditTitle() {
     if (editContainer) return; // 이미 편집 중
 
-    const currentName = currentExercise;
+    const exercise = getExerciseById(currentExercise);
+    if (!exercise) return;
+    const currentName = exercise.name;
     const header = detailTitle.parentElement;
 
     // 편집 컨테이너 생성
@@ -918,32 +1058,25 @@ function startEditTitle() {
 
         if (!shouldSave || !newName || newName === currentName) return;
 
-        if (data.exercises.includes(newName)) {
+        const existingExercise = data.exercises.find(ex => ex.name === newName && ex.id !== currentExercise);
+        if (existingExercise) {
             if (confirm(`"${newName}" 이미 존재합니다. 합칠까요?`)) {
+                // 현재 운동의 기록을 기존 운동으로 이동
                 data.records.forEach(r => {
-                    if (r.exercise === currentName) r.exercise = newName;
+                    if (r.exerciseId === currentExercise) r.exerciseId = existingExercise.id;
                 });
-                data.exercises = data.exercises.filter(n => n !== currentName);
-                delete data.colors[currentName];
-                delete data.memos[currentName];
-                currentExercise = newName;
+                // 현재 운동 삭제
+                data.exercises = data.exercises.filter(ex => ex.id !== currentExercise);
+                currentExercise = existingExercise.id;
                 detailTitle.textContent = newName;
-                exerciseMemo.value = data.memos[newName] || '';
+                exerciseMemo.value = existingExercise.memo || '';
                 save();
                 renderDetail();
                 updateAddSetBtnColor();
             }
         } else {
-            const idx = data.exercises.indexOf(currentName);
-            data.exercises[idx] = newName;
-            data.colors[newName] = data.colors[currentName];
-            delete data.colors[currentName];
-            data.memos[newName] = data.memos[currentName];
-            delete data.memos[currentName];
-            data.records.forEach(r => {
-                if (r.exercise === currentName) r.exercise = newName;
-            });
-            currentExercise = newName;
+            // 이름만 변경 (ID는 유지)
+            exercise.name = newName;
             detailTitle.textContent = newName;
             save();
         }
@@ -963,7 +1096,8 @@ detailTitle.addEventListener('click', startEditTitle);
 // Add Set 버튼 색상을 운동 색상으로 변경
 function updateAddSetBtnColor() {
     if (!currentExercise) return;
-    const color = data.colors[currentExercise] || '#34c759';
+    const exercise = getExerciseById(currentExercise);
+    const color = exercise?.color || '#34c759';
     const addSetBtn = document.getElementById('addSetBtn');
     addSetBtn.style.background = color;
     addSetBtn.style.color = isLightColor(color) ? '#1d1d1f' : '#fff';
@@ -1018,7 +1152,7 @@ function addSet() {
     const record = {
         id: generateId(),
         datetime: createDatetime(d),
-        exercise: currentExercise,
+        exerciseId: currentExercise,
         w: w,
         r: r,
         m: m || null
@@ -1052,7 +1186,7 @@ historyToggleBtn.addEventListener('click', () => {
     historyToggleBtn.classList.toggle('active', isHistoryVisible);
     setListContainer.classList.toggle('hidden', !isHistoryVisible);
     const historyToggleText = document.getElementById('historyToggleText');
-    const totalRecords = data.records.filter(r => r.exercise === currentExercise).length;
+    const totalRecords = data.records.filter(r => r.exerciseId === currentExercise).length;
     historyToggleText.textContent = isHistoryVisible ? `숨기기 (${totalRecords})` : `보기 (${totalRecords})`;
 });
 
@@ -1153,7 +1287,7 @@ const chartEndDate = document.getElementById('chartEndDate');
 let currentChartPeriod = 'week';
 
 function updateChartSelect() {
-    chartSelect.innerHTML = '<option value="">운동을 선택하세요</option>' + data.exercises.map(name => `<option value="${name}">${name}</option>`).join('');
+    chartSelect.innerHTML = '<option value="">운동을 선택하세요</option>' + data.exercises.map(ex => `<option value="${ex.id}">${ex.name}</option>`).join('');
 }
 
 function getDateRange(period) {
@@ -1198,11 +1332,22 @@ function getDateRange(period) {
     };
 }
 
+// 라이트 유저가 사용 가능한 차트 기간
+const LITE_CHART_PERIODS = ['week', '1month'];
+
 chartPeriodBtns.forEach(btn => {
     btn.addEventListener('click', () => {
+        const period = btn.dataset.period;
+
+        // 라이트 유저는 week, 1month만 허용
+        if (!isPremium && !LITE_CHART_PERIODS.includes(period)) {
+            showUpgradePrompt('확장 차트 기간');
+            return;
+        }
+
         chartPeriodBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        currentChartPeriod = btn.dataset.period;
+        currentChartPeriod = period;
 
         if (currentChartPeriod === 'custom') {
             chartCustomDate.classList.add('show');
@@ -1224,6 +1369,18 @@ chartPeriodBtns.forEach(btn => {
     });
 });
 
+// 차트 탭 진입 시 프리미엄 전용 버튼 비활성화 표시
+function updateChartPeriodButtons() {
+    chartPeriodBtns.forEach(btn => {
+        const period = btn.dataset.period;
+        if (!isPremium && !LITE_CHART_PERIODS.includes(period)) {
+            btn.classList.add('premium-locked');
+        } else {
+            btn.classList.remove('premium-locked');
+        }
+    });
+}
+
 chartStartDate.addEventListener('change', () => {
     if (chartSelect.value && currentChartPeriod === 'custom') {
         renderCharts(chartSelect.value);
@@ -1237,15 +1394,15 @@ chartEndDate.addEventListener('change', () => {
 });
 
 chartSelect.addEventListener('change', () => {
-    const exercise = chartSelect.value;
-    if (!exercise) { chartContent.classList.add('hidden'); chartEmpty.classList.remove('hidden'); return; }
+    const exerciseId = chartSelect.value;
+    if (!exerciseId) { chartContent.classList.add('hidden'); chartEmpty.classList.remove('hidden'); return; }
     chartContent.classList.remove('hidden');
     chartEmpty.classList.add('hidden');
-    renderCharts(exercise);
+    renderCharts(exerciseId);
 });
 
-function renderCharts(exercise) {
-    const records = data.records.filter(r => r.exercise === exercise);
+function renderCharts(exerciseId) {
+    const records = data.records.filter(r => r.exerciseId === exerciseId);
     if (records.length === 0) { chartContent.classList.add('hidden'); chartEmpty.textContent = '기록이 없습니다'; chartEmpty.classList.remove('hidden'); return; }
 
     const range = getDateRange(currentChartPeriod);
@@ -1476,22 +1633,23 @@ function handleRoute() {
     addExercisePage.classList.add('hidden');
 
     if (route === 'detail' && parts[1]) {
-        const exerciseName = decodeURIComponent(parts[1]);
+        const exerciseIdOrName = decodeURIComponent(parts[1]);
         const date = parts[2] || null;
-        if (data.exercises.includes(exerciseName)) {
+        // ID 또는 이름으로 운동 찾기
+        let exercise = getExerciseById(exerciseIdOrName) || getExerciseByName(exerciseIdOrName);
+        if (exercise) {
             // 탭은 record로
             Object.values(tabs).forEach(t => t.classList.add('hidden'));
             tabs.record.classList.remove('hidden');
             tabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === 'record'));
             // 상세 페이지 표시
-            currentExercise = exerciseName;
-            detailTitle.textContent = exerciseName;
+            currentExercise = exercise.id;
+            detailTitle.textContent = exercise.name;
             mainPage.classList.add('hidden');
             detailPage.classList.remove('hidden');
-            const memo = data.memos[exerciseName] || '';
-            exerciseMemo.value = memo;
-            if (memo) {
-                exerciseMemoDisplay.textContent = memo;
+            exerciseMemo.value = exercise.memo || '';
+            if (exercise.memo) {
+                exerciseMemoDisplay.textContent = exercise.memo;
                 exerciseMemoDisplay.classList.remove('hidden');
             } else {
                 exerciseMemoDisplay.classList.add('hidden');
@@ -1581,15 +1739,22 @@ showMain = function() {
     handleRoute();
 };
 
-const originalShowDetail = showDetail;
-showDetail = function(name, date = null) {
+const originalShowDetailById = showDetailById;
+showDetailById = function(id, date = null) {
     selectedDate = date || selectedDate || today;
     if (date) {
-        navigate(`detail/${encodeURIComponent(name)}/${date}`);
+        navigate(`detail/${encodeURIComponent(id)}/${date}`);
     } else {
-        navigate(`detail/${encodeURIComponent(name)}`);
+        navigate(`detail/${encodeURIComponent(id)}`);
     }
     handleRoute();
+};
+
+// showDetail은 이름으로 ID를 찾아서 showDetailById 호출
+const originalShowDetail = showDetail;
+showDetail = function(name, date = null) {
+    const exercise = getExerciseByName(name);
+    if (exercise) showDetailById(exercise.id, date);
 };
 
 // 탭 버튼 이벤트 재설정
@@ -1895,22 +2060,23 @@ function renderAchievements() {
 
 // INIT - 테스트 데이터 강제 생성
 function generateTestData() {
-    data = { exercises: [], colors: {}, memos: {}, records: [], achievements: {} };
-    const exercises = [
-        { name: '팔굽혀펴기', color: '#ff6b6b' },
-        { name: '윗몸일으키기', color: '#51cf66' },
-        { name: '벤치프레스', color: '#339af0' },
-        { name: '스쿼트', color: '#cc5de8' }
+    const baseTimestamp = Date.now();
+    const exerciseData = [
+        { id: String(baseTimestamp), name: '팔굽혀펴기', color: '#ff6b6b', memo: '가슴과 삼두를 단련하는 기본 운동' },
+        { id: String(baseTimestamp + 1), name: '윗몸일으키기', color: '#51cf66', memo: '' },
+        { id: String(baseTimestamp + 2), name: '벤치프레스', color: '#339af0', memo: '가슴 운동의 왕, 바벨 벤치프레스' },
+        { id: String(baseTimestamp + 3), name: '스쿼트', color: '#cc5de8', memo: '' }
     ];
 
-    exercises.forEach(ex => {
-        data.exercises.push(ex.name);
-        data.colors[ex.name] = ex.color;
-        data.memos[ex.name] = '';
-    });
+    data = { exercises: exerciseData, records: [], achievements: {} };
 
-    data.memos['팔굽혀펴기'] = '가슴과 삼두를 단련하는 기본 운동';
-    data.memos['벤치프레스'] = '가슴 운동의 왕, 바벨 벤치프레스';
+    // 운동 ID 맵 생성
+    const exerciseIds = {
+        '팔굽혀펴기': exerciseData[0].id,
+        '윗몸일으키기': exerciseData[1].id,
+        '벤치프레스': exerciseData[2].id,
+        '스쿼트': exerciseData[3].id
+    };
 
     let idCounter = 0;
     const now = new Date();
@@ -1926,7 +2092,7 @@ function generateTestData() {
                     data.records.push({
                         id: `test_${idCounter++}`,
                         datetime: `${dateStr}T${String(10 + s).padStart(2, '0')}:00:00`,
-                        exercise: '팔굽혀펴기',
+                        exerciseId: exerciseIds['팔굽혀펴기'],
                         w: 1,
                         r: 15 + Math.floor(Math.random() * 20),
                         m: null
@@ -1939,7 +2105,7 @@ function generateTestData() {
                     data.records.push({
                         id: `test_${idCounter++}`,
                         datetime: `${dateStr}T${String(11 + s).padStart(2, '0')}:00:00`,
-                        exercise: '윗몸일으키기',
+                        exerciseId: exerciseIds['윗몸일으키기'],
                         w: 1,
                         r: 20 + Math.floor(Math.random() * 15),
                         m: null
@@ -1953,7 +2119,7 @@ function generateTestData() {
                     data.records.push({
                         id: `test_${idCounter++}`,
                         datetime: `${dateStr}T${String(14 + s).padStart(2, '0')}:00:00`,
-                        exercise: '벤치프레스',
+                        exerciseId: exerciseIds['벤치프레스'],
                         w: baseWeight + (s < 2 ? 0 : 5),
                         r: 8 + Math.floor(Math.random() * 5),
                         m: Math.random() > 0.7 ? '컨디션 좋음' : null
@@ -1966,7 +2132,7 @@ function generateTestData() {
                     data.records.push({
                         id: `test_${idCounter++}`,
                         datetime: `${dateStr}T${String(16 + s).padStart(2, '0')}:00:00`,
-                        exercise: '스쿼트',
+                        exerciseId: exerciseIds['스쿼트'],
                         w: 1,
                         r: 15 + Math.floor(Math.random() * 10),
                         m: null
