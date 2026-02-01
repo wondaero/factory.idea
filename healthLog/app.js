@@ -2,7 +2,7 @@ const KEY = 'healthLog';
 const today = new Date().toLocaleDateString('sv-SE');
 
 // 프리미엄 vs 라이트 설정
-let isPremium = false; // 기본값: 라이트
+let isPremium = true; // 기본값: 라이트
 
 // 전체 색상 (프리미엄)
 const PRESET_COLORS = [
@@ -49,7 +49,10 @@ function showUpgradePrompt(featureName) {
 }
 
 let stored = JSON.parse(localStorage.getItem(KEY) || '{}');
-isPremium = stored.isPremium || false;
+// stored에 isPremium이 명시적으로 있으면 그 값 사용, 없으면 기본값 유지
+if (stored.isPremium !== undefined) {
+    isPremium = stored.isPremium;
+}
 
 // 데이터 마이그레이션: 기존 구조 → 새 구조 (운동 ID 기반)
 function migrateData(oldData) {
@@ -506,7 +509,6 @@ function showDayDetail(dateStr) {
                     <div class="exercise-sets">${ex.sets}세트</div>
                     ${ex.memo ? `<div class="exercise-memo">${ex.memo}</div>` : ''}
                 </div>
-                <span class="arrow">›</span>
                 <button class="delete-btn" data-delete-id="${ex.id}">×</button>
             </div>
         `).join('');
@@ -558,9 +560,15 @@ function deleteExerciseForDate(exerciseId, dateStr) {
 
 // 해당 날짜의 모든 운동 기록 삭제
 function clearAllForDate(dateStr) {
+    const exercises = getExercisesForDate(dateStr);
+    // 기록이 없으면 그냥 닫기
+    if (exercises.length === 0) {
+        dayDetail.classList.add('hidden');
+        return;
+    }
     const date = parseLocalDate(dateStr);
     const dateLabel = dateStr === today ? '오늘' : `${date.getMonth() + 1}월 ${date.getDate()}일`;
-    if (!confirm(`${dateLabel}의 모든 운동 기록을 삭제할까요?\n(${getExercisesForDate(dateStr).map(e => e.name).join(', ')})`)) return;
+    if (!confirm(`${dateLabel}의 모든 운동 기록을 삭제할까요?\n(${exercises.map(e => e.name).join(', ')})`)) return;
     data.records = data.records.filter(r => getDateFromDatetime(r.datetime) !== dateStr);
     save();
     showDayDetail(dateStr);
@@ -751,10 +759,7 @@ function renderMain(searchQuery = '') {
                         ${ex.memo ? `<div class="item-memo">${ex.memo}</div>` : ''}
                     </div>
                 </div>
-                <div>
-                    <button class="delete-btn" data-id="${ex.id}">×</button>
-                    <span class="arrow">›</span>
-                </div>
+                <button class="delete-btn" data-id="${ex.id}">×</button>
             </div>
         `;
     }).join('');
@@ -1406,6 +1411,7 @@ function renderCharts(exerciseId) {
     if (records.length === 0) { chartContent.classList.add('hidden'); chartEmpty.textContent = '기록이 없습니다'; chartEmpty.classList.remove('hidden'); return; }
 
     const range = getDateRange(currentChartPeriod);
+
     const byDate = {};
     records.forEach(r => {
         const dateStr = getDateFromDatetime(r.datetime);
@@ -1428,7 +1434,11 @@ function renderCharts(exerciseId) {
 
     const chartData = dates.map(date => {
         const dayRecords = byDate[date];
-        return { date, maxWeight: Math.max(...dayRecords.map(r => r.w)), totalVolume: dayRecords.reduce((sum, r) => sum + (r.w * r.r), 0) };
+        return {
+            date,
+            maxWeight: Math.max(...dayRecords.map(r => r.w)),
+            totalVolume: dayRecords.reduce((sum, r) => sum + (r.w * r.r), 0)
+        };
     });
 
     renderWeightChart(chartData);
@@ -1445,8 +1455,7 @@ function renderWeightChart(chartData) {
     const padding = 12;
     const points = chartData.map((d, i) => ({
         x: padding + (i / (chartData.length - 1 || 1)) * (100 - padding * 2),
-        y: padding + (100 - padding * 2) - ((d.maxWeight - minWeight) / range) * (100 - padding * 2),
-        data: d
+        y: padding + (100 - padding * 2) - ((d.maxWeight - minWeight) / range) * (100 - padding * 2)
     }));
 
     // 부드러운 곡선 생성 (Catmull-Rom spline)
@@ -1501,19 +1510,23 @@ function renderWeightChart(chartData) {
 function renderVolumeChart(chartData) {
     if (chartData.length === 0) { volumeChart.innerHTML = '<div class="empty">데이터 없음</div>'; return; }
     const maxVolume = Math.max(...chartData.map(d => d.totalVolume));
-    const barHeight = 120; // 바 영역 고정 높이 (px)
-    volumeChart.innerHTML = chartData.map(d => {
+    const barHeight = 120;
+
+    volumeChart.innerHTML = chartData.map((d, i) => {
         const heightPx = Math.max(4, (d.totalVolume / maxVolume) * barHeight);
         return `
-            <div class="bar-item">
-                <span class="bar-value">${d.totalVolume >= 1000 ? (d.totalVolume / 1000).toFixed(1) + 'k' : d.totalVolume}</span>
+            <div class="bar-item" data-index="${i}">
                 <div class="bar-wrapper">
+                    <span class="bar-value">${d.totalVolume >= 1000 ? (d.totalVolume / 1000).toFixed(1) + 'k' : d.totalVolume}</span>
                     <div class="bar" style="height: ${heightPx}px"></div>
                 </div>
                 <span class="bar-label">${formatDateShort(d.date)}</span>
             </div>
         `;
     }).join('');
+
+    // 최신 날짜가 보이도록 오른쪽 끝으로 스크롤
+    volumeChart.scrollLeft = volumeChart.scrollWidth;
 }
 
 // Timer
@@ -1759,7 +1772,6 @@ showDetail = function(name, date = null) {
 
 // 탭 버튼 이벤트 재설정
 tabButtons.forEach(btn => {
-    btn.removeEventListener('click', () => {});
     btn.onclick = () => switchTab(btn.dataset.tab);
 });
 

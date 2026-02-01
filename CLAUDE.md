@@ -18,3 +18,22 @@
 - 더 나은 방법이 있으면 제안
 - 문제가 보이면 미리 경고
 - 트렌드나 best practice 공유
+
+## CSS/HTML 코딩 컨벤션
+
+### CSS 셀렉터 규칙
+
+- CSS는 **class만 사용** (id 사용 안 함)
+- class는 **케밥케이스** 사용 (카멜케이스 금지)
+  - ❌ `todayBtn`
+  - ✅ `today-btn`
+
+### id와 class 역할 분리
+
+- **id**: JS 기능 연결용으로만 사용
+- **class**: 스타일링 전용
+
+### data 속성 활용
+
+- `data-*` 속성은 CSS와 JS 모두 사용 가능
+- 예: `[data-id="abc"]` → 스타일링 OK, 기능 연결 OK

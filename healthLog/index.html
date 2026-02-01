@@ -41,7 +41,7 @@
                         <div class="calendar-header">
                             <button class="calendar-title-btn" id="calendarTitleBtn">2024년 1월</button>
                             <div class="calendar-nav">
-                                <button id="todayBtn">오늘</button>
+                                <button class="today-btn" id="todayBtn">today</button>
                                 <button id="prevMonth">‹</button>
                                 <button id="nextMonth">›</button>
                             </div>
@@ -75,7 +75,7 @@
                 <header>
                     <button class="back-btn" id="backBtn">←</button>
                     <h1 id="detailTitle" class="editable-title">운동명</h1>
-                    <button class="edit-btn" id="editTitleBtn">✏</button>
+                    <button class="edit-btn edit-title-btn" id="editTitleBtn">✏</button>
                 </header>
                 <div class="exercise-memo-display hidden" id="exerciseMemoDisplay"></div>
 
@@ -104,12 +104,12 @@
                     <span class="history-title">기록</span>
                     <button class="history-toggle-btn" id="historyToggleBtn">
                         <span id="historyToggleText">보기</span>
-                        <span id="historyToggleIcon">▼</span>
+                        <span class="history-toggle-icon" id="historyToggleIcon">▼</span>
                     </button>
                 </div>
-                <div id="setListContainer" class="hidden">
+                <div class="set-list-container hidden" id="setListContainer">
                     <div id="setList"></div>
-                    <div id="loadMoreIndicator" class="hidden">불러오는 중...</div>
+                    <div class="load-more-indicator hidden" id="loadMoreIndicator">불러오는 중...</div>
                 </div>
             </div>
         </div>
@@ -127,11 +127,6 @@
                 <button class="chart-period-btn" data-period="6month">6개월</button>
                 <button class="chart-period-btn" data-period="1year">1년</button>
                 <button class="chart-period-btn" data-period="custom">커스텀</button>
-            </div>
-            <div class="chart-custom-date" id="chartCustomDate">
-                <input type="date" id="chartStartDate">
-                <span>~</span>
-                <input type="date" id="chartEndDate">
             </div>
             <div id="chartContent" class="hidden">
                 <div class="chart-section">
@@ -206,7 +201,7 @@
     </div>
 
     <!-- Add Exercise Page -->
-    <div id="addExercisePage" class="hidden">
+    <div class="add-exercise-page hidden" id="addExercisePage">
         <header>
             <button class="back-btn" id="closeAddExercise">←</button>
             <h1>운동 추가</h1>
@@ -269,6 +264,30 @@
         </div>
     </div>
 
+    <!-- Custom Date Modal -->
+    <div class="modal-overlay" id="customDateModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>기간 선택</h3>
+                <button class="modal-close" id="closeCustomDateModal">×</button>
+            </div>
+            <div class="custom-date-form">
+                <div class="form-group">
+                    <label>시작일</label>
+                    <input type="date" id="chartStartDate">
+                </div>
+                <div class="form-group">
+                    <label>종료일</label>
+                    <input type="date" id="chartEndDate">
+                </div>
+                <div class="modal-actions">
+                    <button class="modal-btn cancel" id="cancelCustomDate">취소</button>
+                    <button class="modal-btn save" id="applyCustomDate">적용</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Tab Bar -->
     <nav class="tab-bar">
         <button class="tab-item active" data-tab="record">
@@ -294,23 +313,32 @@
             <span>타이머</span>
         </button>
         <button class="tab-item" data-tab="achievement">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="8" r="6"/>
-                <path d="M12 14v6M9 20h6"/>
-                <path d="M9 2l1.5 2L12 2l1.5 2L15 2"/>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 9H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h2"/>
+                <path d="M18 9h2a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2"/>
+                <path d="M4 22h16"/>
+                <path d="M10 22V18"/>
+                <path d="M14 22v-4"/>
+                <path d="M6 3v7a6 6 0 0 0 12 0V3H6z"/>
             </svg>
             <span>업적</span>
         </button>
         <button class="tab-item" data-tab="settings">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M6 5v14M18 5v14"/>
-                <rect x="3" y="8" width="6" height="8" rx="1"/>
-                <rect x="15" y="8" width="6" height="8" rx="1"/>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10 14L14 10"/>
+                <rect x="5" y="13" width="4" height="6" rx="1" transform="rotate(-45 7 16)"/>
+                <rect x="15" y="5" width="4" height="6" rx="1" transform="rotate(-45 17 8)"/>
             </svg>
             <span>운동 설정</span>
         </button>
     </nav>
 
-    <script src="app.js"></script>
+    <!-- JS 모듈 (순서 중요) -->
+    <script src="js/data.js"></script>
+    <script src="js/record.js"></script>
+    <script src="js/chart.js"></script>
+    <script src="js/timer.js"></script>
+    <script src="js/achievement.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>
