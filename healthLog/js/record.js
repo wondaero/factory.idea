@@ -90,7 +90,6 @@ const setList = $('setList');
 const dateInput = $('dateInput');
 const weightInput = $('weightInput');
 const repsInput = $('repsInput');
-const exerciseMemo = $('exerciseMemo');
 const exerciseMemoDisplay = $('exerciseMemoDisplay');
 const setMemoInput = $('setMemo');
 const colorPickerGrid = $('colorPickerGrid');
@@ -106,7 +105,6 @@ const inputFormArea = $('inputFormArea');
 const addRecordToggleBtn = $('addRecordToggleBtn');
 const historyToggleBtn = $('historyToggleBtn');
 const historyToggleText = $('historyToggleText');
-const historyToggleIcon = $('historyToggleIcon');
 const setListContainer = $('setListContainer');
 const loadMoreIndicator = $('loadMoreIndicator');
 const addSetBtn = $('addSetBtn');
@@ -328,9 +326,13 @@ function showDayDetail(dateStr) {
     dayDetailTitle.textContent = dateStr === today ? '오늘 기록' : `${date.getMonth() + 1}월 ${date.getDate()}일 기록`;
 
     const exercises = getExercisesForDate(dateStr);
-    dayExercises.innerHTML = exercises.length === 0
-        ? '<div class="empty" style="padding:20px">기록이 없습니다</div>'
-        : exercises.map(ex => `
+    const hasRecords = exercises.length > 0;
+
+    // 기록이 없으면 닫기 버튼 숨김
+    $('closeDayDetail').classList.toggle('hidden', !hasRecords);
+
+    dayExercises.innerHTML = hasRecords
+        ? exercises.map(ex => `
             <div class="day-exercise-item" data-exercise-id="${ex.id}">
                 <span class="color-dot" style="background:${ex.color}"></span>
                 <div class="exercise-info">
@@ -340,7 +342,8 @@ function showDayDetail(dateStr) {
                 </div>
                 <button class="delete-btn" data-delete-id="${ex.id}">×</button>
             </div>
-        `).join('');
+        `).join('')
+        : '<div class="empty" style="padding:20px">기록이 없습니다</div>';
 
     dayDetail.classList.remove('hidden');
     renderCalendar();
@@ -371,7 +374,12 @@ calendarDays.onclick = e => {
 };
 
 $('closeDayDetail').onclick = () => clearAllForDate(selectedDate);
-$('dayAddBtn').onclick = () => switchTab('settings');
+
+function goToSettingsForAdd() {
+    switchTab('settings');
+}
+
+$('dayAddBtn').onclick = () => goToSettingsForAdd();
 
 function deleteExerciseForDate(exerciseId, dateStr) {
     const exercise = getExerciseById(exerciseId);
@@ -447,9 +455,9 @@ function renderFeedView() {
 
 feedView.onclick = e => {
     const addToday = e.target.closest('.feed-add-today-btn');
-    if (addToday) { selectedDate = addToday.dataset.date; switchTab('settings'); return; }
+    if (addToday) { selectedDate = addToday.dataset.date; goToSettingsForAdd(); return; }
     const add = e.target.closest('.feed-day-add');
-    if (add) { selectedDate = add.dataset.date; switchTab('settings'); return; }
+    if (add) { selectedDate = add.dataset.date; goToSettingsForAdd(); return; }
     const ex = e.target.closest('.feed-exercise');
     if (ex) showDetailById(ex.dataset.exerciseId, ex.dataset.date);
 };
@@ -555,8 +563,12 @@ function loadMoreRecords() {
         for (let j = 0, slen = sets.length; j < slen; j++) {
             const s = sets[j];
             html.push(`<div class="set-item" data-id="${s.id}">
-                <div><span class="info"><strong>${s.w}kg</strong> x ${s.r}reps</span>${s.m ? `<div class="set-memo">${s.m}</div>` : ''}</div>
-                <div><span class="meta">Set ${j + 1}</span><button class="edit-btn" data-id="${s.id}">✏️</button><button class="delete-btn" data-id="${s.id}">×</button></div>
+                <div class="set-item-row">
+                    <span class="meta">[Set ${j + 1}]</span>
+                    <span class="info"><strong>${s.w}kg</strong> x ${s.r}reps</span>
+                    <button class="delete-btn" data-id="${s.id}">×</button>
+                </div>
+                ${s.m ? `<div class="set-memo">${s.m}</div>` : ''}
             </div>`);
         }
     }
@@ -587,7 +599,6 @@ function showDetailById(id, date = null) {
     addExercisePage.classList.add('hidden');
     dayDetail.classList.add('hidden');
 
-    exerciseMemo.value = exercise.memo || '';
     if (exercise.memo) {
         exerciseMemoDisplay.textContent = exercise.memo;
         exerciseMemoDisplay.classList.remove('hidden');
@@ -623,18 +634,6 @@ function showDetail(name, date = null) {
     const ex = getExerciseByName(name);
     if (ex) showDetailById(ex.id, date);
 }
-
-exerciseMemo.onblur = () => {
-    if (!currentExercise) return;
-    const ex = getExerciseById(currentExercise);
-    if (!ex) return;
-    ex.memo = exerciseMemo.value.trim();
-    save();
-    if (ex.memo) {
-        exerciseMemoDisplay.textContent = ex.memo;
-        exerciseMemoDisplay.classList.remove('hidden');
-    } else exerciseMemoDisplay.classList.add('hidden');
-};
 
 // ==================== Add Exercise ====================
 function renderColorPicker() {
@@ -772,7 +771,12 @@ function startEditTitle() {
                 data.exercises = data.exercises.filter(ex => ex.id !== currentExercise);
                 currentExercise = existing.id;
                 detailTitle.textContent = newName;
-                exerciseMemo.value = existing.memo || '';
+                if (existing.memo) {
+                    exerciseMemoDisplay.textContent = existing.memo;
+                    exerciseMemoDisplay.classList.remove('hidden');
+                } else {
+                    exerciseMemoDisplay.classList.add('hidden');
+                }
                 save();
                 renderDetail();
                 updateAddSetBtnColor();
@@ -849,7 +853,7 @@ function addSet() {
         m: m || null
     });
     save();
-    renderDetail();
+    renderDetail(isFromCalendar ? dateInput.value : null);
     currentViewMode === 'calendar' ? renderCalendar() : renderFeedView();
     weightInput.value = repsInput.value = setMemoInput.value = '';
     weightInput.focus();
@@ -884,12 +888,13 @@ setList.onclick = e => {
         if (idx !== -1) {
             data.records.splice(idx, 1);
             save();
-            renderDetail();
+            renderDetail(isFromCalendar ? dateInput.value : null);
             currentViewMode === 'calendar' ? renderCalendar() : renderFeedView();
         }
         return;
     }
-    if (e.target.classList.contains('edit-btn')) openEditSetModal(e.target.dataset.id);
+    const item = e.target.closest('.set-item');
+    if (item) openEditSetModal(item.dataset.id);
 };
 
 // ==================== Set Edit Modal ====================
@@ -923,7 +928,7 @@ function saveEditSet() {
         record.r = r;
         record.m = m || null;
         save();
-        renderDetail();
+        renderDetail(isFromCalendar ? dateInput.value : null);
         currentViewMode === 'calendar' ? renderCalendar() : renderFeedView();
     }
     closeEditSetModal();
