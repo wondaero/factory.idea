@@ -86,16 +86,6 @@ function handleRoute() {
         tabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === 'chart'));
         updateChartSelect();
         updateChartPeriodButtons();
-    } else if (route === 'timer') {
-        if (!isPremium) {
-            isNavigating = false;
-            navigate('record', true);
-            handleRoute();
-            return;
-        }
-        Object.values(tabs).forEach(t => t.classList.add('hidden'));
-        tabs.timer.classList.remove('hidden');
-        tabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === 'timer'));
     } else if (route === 'achievement') {
         Object.values(tabs).forEach(t => t.classList.add('hidden'));
         tabs.achievement.classList.remove('hidden');
@@ -162,109 +152,9 @@ tabButtons.forEach(btn => {
 });
 
 // 뒤로가기 버튼
-document.getElementById('backBtn').onclick = () => {
-    history.back();
-};
-
-// ==================== 테스트 데이터 생성 ====================
-
-function generateTestData() {
-    const baseTimestamp = Date.now();
-    const exerciseData = [
-        { id: String(baseTimestamp), name: '팔굽혀펴기', color: '#ff6b6b', memo: '가슴과 삼두를 단련하는 기본 운동' },
-        { id: String(baseTimestamp + 1), name: '윗몸일으키기', color: '#51cf66', memo: '' },
-        { id: String(baseTimestamp + 2), name: '벤치프레스', color: '#339af0', memo: '가슴 운동의 왕, 바벨 벤치프레스' },
-        { id: String(baseTimestamp + 3), name: '스쿼트', color: '#cc5de8', memo: '' }
-    ];
-
-    data = { exercises: exerciseData, records: [], achievements: {} };
-
-    const exerciseIds = {
-        '팔굽혀펴기': exerciseData[0].id,
-        '윗몸일으키기': exerciseData[1].id,
-        '벤치프레스': exerciseData[2].id,
-        '스쿼트': exerciseData[3].id
-    };
-
-    let idCounter = 0;
-    const now = new Date();
-    for (let i = 30; i >= 0; i--) {
-        const d = new Date(now);
-        d.setDate(d.getDate() - i);
-        const dateStr = d.toLocaleDateString('sv-SE');
-
-        if (Math.random() > 0.3) {
-            if (Math.random() > 0.3) {
-                const sets = 3 + Math.floor(Math.random() * 3);
-                for (let s = 0; s < sets; s++) {
-                    data.records.push({
-                        id: `test_${idCounter++}`,
-                        datetime: `${dateStr}T${String(10 + s).padStart(2, '0')}:00:00`,
-                        exerciseId: exerciseIds['팔굽혀펴기'],
-                        w: 1,
-                        r: 15 + Math.floor(Math.random() * 20),
-                        m: null
-                    });
-                }
-            }
-            if (Math.random() > 0.4) {
-                const sets = 3 + Math.floor(Math.random() * 2);
-                for (let s = 0; s < sets; s++) {
-                    data.records.push({
-                        id: `test_${idCounter++}`,
-                        datetime: `${dateStr}T${String(11 + s).padStart(2, '0')}:00:00`,
-                        exerciseId: exerciseIds['윗몸일으키기'],
-                        w: 1,
-                        r: 20 + Math.floor(Math.random() * 15),
-                        m: null
-                    });
-                }
-            }
-            if (Math.random() > 0.4) {
-                const baseWeight = 40 + Math.floor((30 - i) / 5) * 2.5;
-                const sets = 4 + Math.floor(Math.random() * 2);
-                for (let s = 0; s < sets; s++) {
-                    data.records.push({
-                        id: `test_${idCounter++}`,
-                        datetime: `${dateStr}T${String(14 + s).padStart(2, '0')}:00:00`,
-                        exerciseId: exerciseIds['벤치프레스'],
-                        w: baseWeight + (s < 2 ? 0 : 5),
-                        r: 8 + Math.floor(Math.random() * 5),
-                        m: Math.random() > 0.7 ? '컨디션 좋음' : null
-                    });
-                }
-            }
-            if (Math.random() > 0.4) {
-                const sets = 3 + Math.floor(Math.random() * 2);
-                for (let s = 0; s < sets; s++) {
-                    data.records.push({
-                        id: `test_${idCounter++}`,
-                        datetime: `${dateStr}T${String(16 + s).padStart(2, '0')}:00:00`,
-                        exerciseId: exerciseIds['스쿼트'],
-                        w: 1,
-                        r: 15 + Math.floor(Math.random() * 10),
-                        m: null
-                    });
-                }
-            }
-        }
-    }
-    save();
-}
+document.getElementById('backBtn').onclick = () => history.back();
 
 // ==================== 초기화 ====================
 
-// 테스트 데이터 생성 (필요시 주석 해제)
-// generateTestData();
-
-// 타이머 초기화
-updateTimerDisplay();
-
-// 타이머 입력 유효성 검사
-validateInput(customTimeInput, false);
-
-// 초기 라우팅
-if (!location.hash) {
-    navigate('record', true);
-}
+if (!location.hash) navigate('record', true);
 handleRoute();

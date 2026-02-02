@@ -378,21 +378,13 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
 .day-exercise-item .exercise-memo { font-size: 12px; color: #666; font-style: italic; margin-top: 2px; }
 .day-exercise-item .arrow { color: #ccc; font-size: 18px; }
 .day-exercise-item .delete-btn {
-    width: 28px;
-    height: 28px;
+    background: none;
     border: none;
-    background: #ff3b30;
-    color: #fff;
-    border-radius: 50%;
-    font-size: 16px;
+    color: #ff3b30;
+    font-size: 20px;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    margin-left: 8px;
+    padding: 8px 12px;
 }
-.day-exercise-item .delete-btn:active { background: #d63029; }
 .day-actions {
     display: flex;
     gap: 10px;
@@ -772,7 +764,6 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
 .editable-title { cursor: pointer; }
 .edit-btn { background: none; border: none; color: #007aff; cursor: pointer; padding: 5px 10px; display: flex; align-items: center; }
 .edit-btn svg { width: 18px; height: 18px; }
-.edit-title-btn { }
 .title-input { flex: 1; padding: 8px 12px; border: 1px solid #007aff; border-radius: 8px; font-size: 1.2rem; font-weight: 600; }
 .title-edit-container {
     display: flex;
@@ -1102,36 +1093,6 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
     font-size: 20px;
 }
 
-/* Timer */
-.timer-display { text-align: center; padding: 40px 20px; }
-.timer-time { font-size: 80px; font-weight: 200; font-variant-numeric: tabular-nums; line-height: 1; margin-bottom: 10px; }
-.timer-status { font-size: 16px; color: #888; margin-bottom: 30px; }
-.timer-presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
-.preset-btn {
-    padding: 16px 10px;
-    background: #fff;
-    border: 2px solid #e0e0e0;
-    border-radius: 12px;
-    font-size: 16px;
-    font-weight: 500;
-    cursor: pointer;
-}
-.preset-btn.active { border-color: #007aff; background: #007aff; color: #fff; }
-.timer-custom { display: flex; gap: 10px; margin-bottom: 24px; }
-.timer-custom input { flex: 1; padding: 14px; border: 1px solid #e0e0e0; border-radius: 12px; background: #fff; font-size: 16px; text-align: center; }
-.timer-custom button { padding: 14px 20px; background: #007aff; border: none; border-radius: 12px; color: #fff; font-size: 16px; cursor: pointer; }
-.timer-controls { display: flex; gap: 12px; justify-content: center; }
-.timer-btn { width: 80px; height: 80px; border-radius: 50%; border: none; font-size: 15px; font-weight: 600; cursor: pointer; }
-.timer-btn.start { background: #34c759; color: #fff; }
-.timer-btn.pause { background: #ff9500; color: #fff; }
-.timer-btn.reset { background: #e0e0e0; color: #1d1d1f; }
-.timer-progress { width: 200px; height: 200px; margin: 0 auto 30px; position: relative; }
-.timer-progress svg { transform: rotate(-90deg); width: 100%; height: 100%; }
-.timer-progress-bg { fill: none; stroke: #e0e0e0; stroke-width: 8; }
-.timer-progress-bar { fill: none; stroke: #007aff; stroke-width: 8; stroke-linecap: round; }
-.timer-progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
-
-
 /* 반응형 - 280px까지 지원 */
 @media (max-width: 360px) {
     .container { padding: 12px; }
@@ -1143,14 +1104,6 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
     .calendar-day { padding: 4px 1px; min-height: 42px; font-size: 12px; }
     .calendar-day .day-number { font-size: 12px; margin-bottom: 2px; }
     .exercise-dot { width: 4px; height: 4px; }
-
-    .timer-presets { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-    .preset-btn { padding: 12px 8px; font-size: 14px; }
-    .timer-time { font-size: 56px; }
-    .timer-progress { width: 160px; height: 160px; }
-    .timer-btn { width: 64px; height: 64px; font-size: 13px; }
-    .timer-custom input { padding: 12px 8px; font-size: 14px; }
-    .timer-custom button { padding: 12px 14px; font-size: 14px; }
 
     .search-row input { padding: 12px; font-size: 14px; }
 
@@ -1204,13 +1157,6 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
     .calendar-day .day-number { font-size: 11px; margin-bottom: 1px; }
     .exercise-dot { width: 3px; height: 3px; }
     .exercise-dots { gap: 1px; }
-
-    .timer-presets { gap: 6px; }
-    .preset-btn { padding: 10px 6px; font-size: 12px; }
-    .timer-time { font-size: 48px; }
-    .timer-progress { width: 140px; height: 140px; }
-    .timer-btn { width: 56px; height: 56px; font-size: 12px; }
-    .timer-controls { gap: 8px; }
 
     .search-row input { padding: 10px 8px; font-size: 13px; }
 

@@ -9,68 +9,52 @@ const chartPeriodBtns = document.querySelectorAll('.chart-period-btn');
 const customDateModal = document.getElementById('customDateModal');
 const chartStartDate = document.getElementById('chartStartDate');
 const chartEndDate = document.getElementById('chartEndDate');
-const closeCustomDateModal = document.getElementById('closeCustomDateModal');
-const cancelCustomDate = document.getElementById('cancelCustomDate');
-const applyCustomDate = document.getElementById('applyCustomDate');
 
 let currentChartPeriod = 'week';
 const LITE_CHART_PERIODS = ['week', '1month'];
 
 function updateChartSelect() {
-    chartSelect.innerHTML = '<option value="">운동을 선택하세요</option>' + data.exercises.map(ex => `<option value="${ex.id}">${ex.name}</option>`).join('');
+    const opts = ['<option value="">운동을 선택하세요</option>'];
+    const exercises = data.exercises;
+    for (let i = 0, len = exercises.length; i < len; i++) {
+        opts.push(`<option value="${exercises[i].id}">${exercises[i].name}</option>`);
+    }
+    chartSelect.innerHTML = opts.join('');
 }
 
 function getDateRange(period) {
     const now = new Date();
-    const endDate = new Date(now);
-    let startDate = new Date(now);
+    const end = new Date(now);
+    let start = new Date(now);
 
     switch(period) {
         case 'week':
-            const day = now.getDay();
-            const diff = day === 0 ? 6 : day - 1;
-            startDate.setDate(now.getDate() - diff);
+            start.setDate(now.getDate() - (now.getDay() === 0 ? 6 : now.getDay() - 1));
             break;
-        case '1month':
-            startDate.setMonth(now.getMonth() - 1);
-            break;
-        case '3month':
-            startDate.setMonth(now.getMonth() - 3);
-            break;
-        case '6month':
-            startDate.setMonth(now.getMonth() - 6);
-            break;
-        case '1year':
-            startDate.setFullYear(now.getFullYear() - 1);
-            break;
+        case '1month': start.setMonth(now.getMonth() - 1); break;
+        case '3month': start.setMonth(now.getMonth() - 3); break;
+        case '6month': start.setMonth(now.getMonth() - 6); break;
+        case '1year': start.setFullYear(now.getFullYear() - 1); break;
         case 'custom':
-            if (chartStartDate.value && chartEndDate.value) {
+            if (chartStartDate.value && chartEndDate.value)
                 return { start: chartStartDate.value, end: chartEndDate.value };
-            }
-            startDate.setMonth(now.getMonth() - 1);
+            start.setMonth(now.getMonth() - 1);
             break;
     }
-
-    return {
-        start: startDate.toLocaleDateString('sv-SE'),
-        end: endDate.toLocaleDateString('sv-SE')
-    };
+    return { start: toDateStr(start), end: toDateStr(end) };
 }
 
 function updateChartPeriodButtons() {
     chartPeriodBtns.forEach(btn => {
-        const period = btn.dataset.period;
-        if (!isPremium && !LITE_CHART_PERIODS.includes(period)) {
-            btn.classList.add('premium-locked');
-        } else {
-            btn.classList.remove('premium-locked');
-        }
+        btn.classList.toggle('premium-locked', !isPremium && !LITE_CHART_PERIODS.includes(btn.dataset.period));
     });
 }
 
 function renderCharts(exerciseId) {
-    const records = data.records.filter(r => r.exerciseId === exerciseId);
-    if (records.length === 0) {
+    const exIndex = getRecordsByExerciseIndex();
+    const records = exIndex[exerciseId] || [];
+
+    if (!records.length) {
         chartContent.classList.add('hidden');
         chartEmpty.textContent = '기록이 없습니다';
         chartEmpty.classList.remove('hidden');
@@ -78,18 +62,18 @@ function renderCharts(exerciseId) {
     }
 
     const range = getDateRange(currentChartPeriod);
-
     const byDate = {};
-    records.forEach(r => {
-        const dateStr = getDateFromDatetime(r.datetime);
-        if (dateStr >= range.start && dateStr <= range.end) {
-            if (!byDate[dateStr]) byDate[dateStr] = [];
-            byDate[dateStr].push(r);
-        }
-    });
-    const dates = Object.keys(byDate).sort();
 
-    if (dates.length === 0) {
+    for (let i = 0, len = records.length; i < len; i++) {
+        const r = records[i];
+        const d = r.datetime.slice(0, 10);
+        if (d >= range.start && d <= range.end) {
+            (byDate[d] || (byDate[d] = [])).push(r);
+        }
+    }
+
+    const dates = Object.keys(byDate).sort();
+    if (!dates.length) {
         chartContent.classList.add('hidden');
         chartEmpty.textContent = '선택한 기간에 기록이 없습니다';
         chartEmpty.classList.remove('hidden');
@@ -99,14 +83,18 @@ function renderCharts(exerciseId) {
     chartContent.classList.remove('hidden');
     chartEmpty.classList.add('hidden');
 
-    const chartData = dates.map(date => {
-        const dayRecords = byDate[date];
-        return {
-            date,
-            maxWeight: Math.max(...dayRecords.map(r => r.w)),
-            totalVolume: dayRecords.reduce((sum, r) => sum + (r.w * r.r), 0)
-        };
-    });
+    const chartData = [];
+    for (let i = 0, len = dates.length; i < len; i++) {
+        const date = dates[i];
+        const dayRecs = byDate[date];
+        let maxW = 0, vol = 0;
+        for (let j = 0, jlen = dayRecs.length; j < jlen; j++) {
+            const r = dayRecs[j];
+            if (r.w > maxW) maxW = r.w;
+            vol += r.w * r.r;
+        }
+        chartData.push({ date, maxWeight: maxW, totalVolume: vol });
+    }
 
     renderWeightChart(chartData);
     renderVolumeChart(chartData);
@@ -118,44 +106,47 @@ function formatDateShort(dateStr) {
 }
 
 function renderWeightChart(chartData) {
-    if (chartData.length === 0) {
-        weightChart.innerHTML = '<div class="empty">데이터 없음</div>';
-        return;
+    if (!chartData.length) { weightChart.innerHTML = '<div class="empty">데이터 없음</div>'; return; }
+
+    let maxW = chartData[0].maxWeight, minW = chartData[0].maxWeight;
+    for (let i = 1, len = chartData.length; i < len; i++) {
+        if (chartData[i].maxWeight > maxW) maxW = chartData[i].maxWeight;
+        if (chartData[i].maxWeight < minW) minW = chartData[i].maxWeight;
     }
 
-    const maxWeight = Math.max(...chartData.map(d => d.maxWeight));
-    const minWeight = Math.min(...chartData.map(d => d.maxWeight));
-    const range = maxWeight - minWeight || 1;
-    const padding = 12;
+    const range = maxW - minW || 1;
+    const pad = 12;
+    const len = chartData.length;
+    const points = [];
 
-    const points = chartData.map((d, i) => ({
-        x: padding + (i / (chartData.length - 1 || 1)) * (100 - padding * 2),
-        y: padding + (100 - padding * 2) - ((d.maxWeight - minWeight) / range) * (100 - padding * 2)
-    }));
+    for (let i = 0; i < len; i++) {
+        points.push({
+            x: pad + (i / (len - 1 || 1)) * (100 - pad * 2),
+            y: pad + (100 - pad * 2) - ((chartData[i].maxWeight - minW) / range) * (100 - pad * 2)
+        });
+    }
 
-    function catmullRomSpline(points) {
-        if (points.length < 2) return '';
-        if (points.length === 2) return `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`;
-
-        let d = `M ${points[0].x} ${points[0].y}`;
-        for (let i = 0; i < points.length - 1; i++) {
-            const p0 = points[Math.max(i - 1, 0)];
-            const p1 = points[i];
-            const p2 = points[i + 1];
-            const p3 = points[Math.min(i + 2, points.length - 1)];
-
-            const cp1x = p1.x + (p2.x - p0.x) / 6;
-            const cp1y = p1.y + (p2.y - p0.y) / 6;
-            const cp2x = p2.x - (p3.x - p1.x) / 6;
-            const cp2y = p2.y - (p3.y - p1.y) / 6;
-
-            d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
+    function spline(pts) {
+        if (pts.length < 2) return '';
+        if (pts.length === 2) return `M ${pts[0].x} ${pts[0].y} L ${pts[1].x} ${pts[1].y}`;
+        let d = `M ${pts[0].x} ${pts[0].y}`;
+        for (let i = 0; i < pts.length - 1; i++) {
+            const p0 = pts[Math.max(i - 1, 0)];
+            const p1 = pts[i], p2 = pts[i + 1];
+            const p3 = pts[Math.min(i + 2, pts.length - 1)];
+            d += ` C ${p1.x + (p2.x - p0.x) / 6} ${p1.y + (p2.y - p0.y) / 6}, ${p2.x - (p3.x - p1.x) / 6} ${p2.y - (p3.y - p1.y) / 6}, ${p2.x} ${p2.y}`;
         }
         return d;
     }
 
-    const pathD = catmullRomSpline(points);
-    const areaD = pathD + ` L ${points[points.length - 1].x} ${100 - padding} L ${padding} ${100 - padding} Z`;
+    const pathD = spline(points);
+    const last = points[points.length - 1];
+    const areaD = pathD + ` L ${last.x} ${100 - pad} L ${pad} ${100 - pad} Z`;
+
+    const dots = [];
+    for (let i = 0; i < points.length; i++) {
+        dots.push(`<div class="line-dot" style="left:${points[i].x}%;top:${points[i].y}%"></div>`);
+    }
 
     weightChart.innerHTML = `
         <div class="line-chart-inner">
@@ -174,111 +165,88 @@ function renderWeightChart(chartData) {
                 <path class="line-area" d="${areaD}"/>
                 <path class="line-path" d="${pathD}"/>
             </svg>
-            ${points.map(p => `<div class="line-dot" style="left:${p.x}%;top:${p.y}%"></div>`).join('')}
+            ${dots.join('')}
         </div>
         <div class="line-labels">
             <span class="line-label">${formatDateShort(chartData[0].date)}<br><strong>${chartData[0].maxWeight}kg</strong></span>
-            <span class="line-label">${formatDateShort(chartData[chartData.length - 1].date)}<br><strong>${chartData[chartData.length - 1].maxWeight}kg</strong></span>
-        </div>
-    `;
+            <span class="line-label">${formatDateShort(chartData[len - 1].date)}<br><strong>${chartData[len - 1].maxWeight}kg</strong></span>
+        </div>`;
 }
 
 function renderVolumeChart(chartData) {
-    if (chartData.length === 0) {
-        volumeChart.innerHTML = '<div class="empty">데이터 없음</div>';
-        return;
+    if (!chartData.length) { volumeChart.innerHTML = '<div class="empty">데이터 없음</div>'; return; }
+
+    let maxV = chartData[0].totalVolume, minV = chartData[0].totalVolume;
+    for (let i = 1, len = chartData.length; i < len; i++) {
+        if (chartData[i].totalVolume > maxV) maxV = chartData[i].totalVolume;
+        if (chartData[i].totalVolume < minV) minV = chartData[i].totalVolume;
     }
 
-    const maxVolume = Math.max(...chartData.map(d => d.totalVolume));
-    const minVolume = Math.min(...chartData.map(d => d.totalVolume));
-    const barHeight = 120;
+    const barH = 120;
+    const html = [];
+    for (let i = 0, len = chartData.length; i < len; i++) {
+        const d = chartData[i];
+        const h = Math.max(4, (d.totalVolume / maxV) * barH);
+        const isMax = d.totalVolume === maxV;
+        const isMin = d.totalVolume === minV && maxV !== minV;
+        const valCls = isMax ? 'bar-value max' : isMin ? 'bar-value min' : 'bar-value';
+        const val = d.totalVolume >= 1000 ? (d.totalVolume / 1000).toFixed(1) + 'k' : d.totalVolume;
+        html.push(`<div class="bar-item"><div class="bar-wrapper"><span class="${valCls}">${val}</span><div class="bar${isMax ? ' max' : ''}${isMin ? ' min' : ''}" style="height:${h}px"></div></div><span class="bar-label">${formatDateShort(d.date)}</span></div>`);
+    }
 
-    volumeChart.innerHTML = chartData.map((d, i) => {
-        const heightPx = Math.max(4, (d.totalVolume / maxVolume) * barHeight);
-        const isMax = d.totalVolume === maxVolume;
-        const isMin = d.totalVolume === minVolume && maxVolume !== minVolume;
-        const valueClass = isMax ? 'bar-value max' : (isMin ? 'bar-value min' : 'bar-value');
-        return `
-            <div class="bar-item" data-index="${i}">
-                <div class="bar-wrapper">
-                    <span class="${valueClass}">${d.totalVolume >= 1000 ? (d.totalVolume / 1000).toFixed(1) + 'k' : d.totalVolume}</span>
-                    <div class="bar${isMax ? ' max' : ''}${isMin ? ' min' : ''}" style="height: ${heightPx}px"></div>
-                </div>
-                <span class="bar-label">${formatDateShort(d.date)}</span>
-            </div>
-        `;
-    }).join('');
-
+    volumeChart.innerHTML = html.join('');
     volumeChart.scrollLeft = volumeChart.scrollWidth;
 }
 
-// 모달 열기/닫기
 function openCustomDateModal() {
     if (!chartStartDate.value || !chartEndDate.value) {
         const now = new Date();
-        chartEndDate.value = now.toLocaleDateString('sv-SE');
-        const monthAgo = new Date(now);
-        monthAgo.setMonth(now.getMonth() - 1);
-        chartStartDate.value = monthAgo.toLocaleDateString('sv-SE');
+        chartEndDate.value = toDateStr(now);
+        now.setMonth(now.getMonth() - 1);
+        chartStartDate.value = toDateStr(now);
     }
     customDateModal.classList.add('show');
 }
 
-function closeCustomDateModalFn() {
-    customDateModal.classList.remove('show');
-}
+function closeCustomDateModalFn() { customDateModal.classList.remove('show'); }
 
-// 이벤트 리스너
 chartPeriodBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.onclick = () => {
         const period = btn.dataset.period;
-
         if (!isPremium && !LITE_CHART_PERIODS.includes(period)) {
             showUpgradePrompt('확장 차트 기간');
             return;
         }
-
-        if (period === 'custom') {
-            openCustomDateModal();
-            return;
-        }
-
+        if (period === 'custom') { openCustomDateModal(); return; }
         chartPeriodBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         currentChartPeriod = period;
-
-        if (chartSelect.value) {
-            renderCharts(chartSelect.value);
-        }
-    });
+        if (chartSelect.value) renderCharts(chartSelect.value);
+    };
 });
 
-closeCustomDateModal.addEventListener('click', closeCustomDateModalFn);
-cancelCustomDate.addEventListener('click', closeCustomDateModalFn);
-customDateModal.addEventListener('click', (e) => {
-    if (e.target === customDateModal) closeCustomDateModalFn();
-});
+document.getElementById('closeCustomDateModal').onclick = closeCustomDateModalFn;
+document.getElementById('cancelCustomDate').onclick = closeCustomDateModalFn;
+customDateModal.onclick = e => { if (e.target === customDateModal) closeCustomDateModalFn(); };
 
-applyCustomDate.addEventListener('click', () => {
+document.getElementById('applyCustomDate').onclick = () => {
     if (chartStartDate.value && chartEndDate.value) {
         chartPeriodBtns.forEach(b => b.classList.remove('active'));
         document.querySelector('[data-period="custom"]').classList.add('active');
         currentChartPeriod = 'custom';
         closeCustomDateModalFn();
-        if (chartSelect.value) {
-            renderCharts(chartSelect.value);
-        }
+        if (chartSelect.value) renderCharts(chartSelect.value);
     }
-});
+};
 
-chartSelect.addEventListener('change', () => {
-    const exerciseId = chartSelect.value;
-    if (!exerciseId) {
+chartSelect.onchange = () => {
+    const id = chartSelect.value;
+    if (!id) {
         chartContent.classList.add('hidden');
         chartEmpty.classList.remove('hidden');
         return;
     }
     chartContent.classList.remove('hidden');
     chartEmpty.classList.add('hidden');
-    renderCharts(exerciseId);
-});
+    renderCharts(id);
+};
