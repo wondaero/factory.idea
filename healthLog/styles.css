@@ -495,7 +495,7 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
 .add-exercise-page {
     max-width: 600px;
     margin: 0 auto;
-    padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) 100px max(20px, env(safe-area-inset-left));
+    padding: 0 20px 100px 20px;
 }
 .add-exercise-form {
     padding: 16px;
