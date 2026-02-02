@@ -158,22 +158,24 @@ function renderWeightChart(chartData) {
     const areaD = pathD + ` L ${points[points.length - 1].x} ${100 - padding} L ${padding} ${100 - padding} Z`;
 
     weightChart.innerHTML = `
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none">
-            <defs>
-                <linearGradient id="lineGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" style="stop-color:#007aff;stop-opacity:0.25"/>
-                    <stop offset="100%" style="stop-color:#007aff;stop-opacity:0.02"/>
-                </linearGradient>
-                <linearGradient id="lineStrokeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" style="stop-color:#5ac8fa"/>
-                    <stop offset="50%" style="stop-color:#007aff"/>
-                    <stop offset="100%" style="stop-color:#5856d6"/>
-                </linearGradient>
-            </defs>
-            <path class="line-area" d="${areaD}"/>
-            <path class="line-path" d="${pathD}"/>
-            ${points.map((p, i) => `<circle class="line-dot" cx="${p.x}" cy="${p.y}" r="3.5" data-value="${chartData[i].maxWeight}kg"/>`).join('')}
-        </svg>
+        <div class="line-chart-inner">
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+                <defs>
+                    <linearGradient id="lineGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" style="stop-color:#007aff;stop-opacity:0.25"/>
+                        <stop offset="100%" style="stop-color:#007aff;stop-opacity:0.02"/>
+                    </linearGradient>
+                    <linearGradient id="lineStrokeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" style="stop-color:#5ac8fa"/>
+                        <stop offset="50%" style="stop-color:#007aff"/>
+                        <stop offset="100%" style="stop-color:#5856d6"/>
+                    </linearGradient>
+                </defs>
+                <path class="line-area" d="${areaD}"/>
+                <path class="line-path" d="${pathD}"/>
+            </svg>
+            ${points.map(p => `<div class="line-dot" style="left:${p.x}%;top:${p.y}%"></div>`).join('')}
+        </div>
         <div class="line-labels">
             <span class="line-label">${formatDateShort(chartData[0].date)}<br><strong>${chartData[0].maxWeight}kg</strong></span>
             <span class="line-label">${formatDateShort(chartData[chartData.length - 1].date)}<br><strong>${chartData[chartData.length - 1].maxWeight}kg</strong></span>

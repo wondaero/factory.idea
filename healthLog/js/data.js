@@ -179,3 +179,77 @@ function createDatetime(dateStr = null) {
 function generateId() {
     return `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
+
+// 테스트용 더미 데이터 생성
+function generateTestData() {
+    const exercises = [
+        { id: 'test_1', name: '윗몸일으키기', color: '#ff6b6b', memo: '' },
+        { id: 'test_2', name: '팔굽혀펴기', color: '#cc5de8', memo: '' },
+        { id: 'test_3', name: '벤치프레스', color: '#339af0', memo: '' },
+        { id: 'test_4', name: '스쿼트', color: '#51cf66', memo: '' },
+        { id: 'test_5', name: '런지', color: '#fab005', memo: '' }
+    ];
+
+    const records = [];
+
+    // 2024년 12월 1일 ~ 2025년 1월 31일
+    const startDate = new Date(2024, 11, 1); // 12월 1일
+    const endDate = new Date(2025, 1, 0); // 1월 31일
+    const totalDays = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+
+    for (let i = 0; i < totalDays; i++) {
+        const date = new Date(startDate);
+        date.setDate(date.getDate() + i);
+        const dateStr = date.toLocaleDateString('sv-SE');
+
+        // 70% 확률로 그 날 운동함
+        if (Math.random() > 0.3) {
+            exercises.forEach(ex => {
+                // 각 운동 50% 확률
+                if (Math.random() > 0.5) {
+                    const sets = 2 + Math.floor(Math.random() * 3); // 2~4세트
+                    for (let s = 0; s < sets; s++) {
+                        let weight;
+                        if (ex.name === '윗몸일으키기' || ex.name === '팔굽혀펴기') {
+                            weight = 1; // 맨몸 운동
+                        } else {
+                            // 점점 증가
+                            const baseWeight = ex.name === '벤치프레스' ? 40 : ex.name === '스쿼트' ? 60 : 30;
+                            const progress = i * 0.2; // 날마다 조금씩 증가
+                            weight = baseWeight + progress + (Math.random() * 5 - 2.5);
+                            weight = Math.round(weight * 2) / 2; // 0.5kg 단위
+                        }
+
+                        records.push({
+                            id: `test_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+                            datetime: `${dateStr}T${10 + s}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}:00`,
+                            exerciseId: ex.id,
+                            w: weight,
+                            r: 8 + Math.floor(Math.random() * 5), // 8~12회
+                            m: null
+                        });
+                    }
+                }
+            });
+        }
+    }
+
+    data.exercises = exercises;
+    data.records = records;
+    save();
+    location.reload();
+}
+
+// 더미 데이터 삭제
+function clearTestData() {
+    data.exercises = [];
+    data.records = [];
+    data.achievements = {};
+    save();
+    location.reload();
+}
+
+// 데이터 없으면 테스트 데이터 자동 생성
+if (data.exercises.length === 0) {
+    generateTestData();
+}

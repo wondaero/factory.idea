@@ -246,6 +246,14 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
     color: #888;
     cursor: pointer;
 }
+/* Color Picker Modal */
+.color-picker-content {
+    padding: 20px;
+}
+.color-picker-content .color-picker-grid {
+    padding: 10px;
+    gap: 12px;
+}
 /* Year scroll selector */
 .month-picker-content {
     max-height: 70vh;
@@ -953,9 +961,18 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
     position: relative;
     height: 100%;
     width: 100%;
-    padding: 10px;
+    display: flex;
+    flex-direction: column;
 }
-.line-chart svg {
+.line-chart-inner {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+}
+.line-chart-inner svg {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
     overflow: visible;
@@ -964,26 +981,23 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
 .line-path {
     fill: none;
     stroke: url(#lineStrokeGradient);
-    stroke-width: 3;
+    stroke-width: 0.5;
     stroke-linecap: round;
     stroke-linejoin: round;
 }
 .line-area { fill: url(#lineGradient); }
 .line-dot {
-    fill: #fff;
-    stroke: #007aff;
-    stroke-width: 2;
-    filter: drop-shadow(0 2px 4px rgba(0,122,255,0.3));
-    transition: r 0.2s ease;
+    position: absolute;
+    width: 5px;
+    height: 5px;
+    background: #007aff;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
 }
-.line-dot:hover { r: 5; }
 .line-labels {
     display: flex;
     justify-content: space-between;
-    position: absolute;
-    bottom: 5px;
-    left: 10px;
-    right: 10px;
+    padding: 8px 10px 0;
 }
 .line-label {
     font-size: 11px;
@@ -1234,14 +1248,15 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
 
 /* 탭 버튼 프리미엄 잠금 */
 .tab-item.premium-locked {
-    opacity: 0.4;
+    opacity: 0.5;
 }
 .tab-item.premium-locked::after {
     content: '🔒';
-    font-size: 8px;
+    font-size: 16px;
     position: absolute;
-    top: 2px;
-    right: 2px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -70%);
 }
 
 /* 차트 기간 버튼 프리미엄 잠금 */

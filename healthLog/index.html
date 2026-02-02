@@ -211,14 +211,22 @@
                 <button type="button" class="color-preview-btn" id="colorPreviewBtn"></button>
                 <input type="text" id="newExerciseName" placeholder="운동 이름을 입력하세요">
             </div>
-            <div class="color-picker-dropdown hidden" id="colorPickerDropdown">
-                <div class="color-picker-grid" id="colorPickerGrid"></div>
-            </div>
             <div class="form-group">
                 <label>메모</label>
                 <textarea id="newExerciseMemo" placeholder="운동에 대한 설명을 입력하세요" rows="3"></textarea>
             </div>
             <button class="submit-btn" id="submitAddExercise">추가하기</button>
+        </div>
+    </div>
+
+    <!-- Color Picker Modal -->
+    <div class="modal-overlay" id="colorPickerModal">
+        <div class="modal-content color-picker-content">
+            <div class="modal-header">
+                <h3>색상 선택</h3>
+                <button class="modal-close" id="closeColorPicker">×</button>
+            </div>
+            <div class="color-picker-grid" id="colorPickerGrid"></div>
         </div>
     </div>
 
@@ -290,27 +298,11 @@
 
     <!-- Tab Bar -->
     <nav class="tab-bar">
-        <button class="tab-item active" data-tab="record">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="4" width="18" height="18" rx="2"/>
-                <line x1="16" y1="2" x2="16" y2="6"/>
-                <line x1="8" y1="2" x2="8" y2="6"/>
-                <line x1="3" y1="10" x2="21" y2="10"/>
-            </svg>
-            <span>기록</span>
-        </button>
         <button class="tab-item" data-tab="chart">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M18 20V10M12 20V4M6 20v-6"/>
             </svg>
             <span>차트</span>
-        </button>
-        <button class="tab-item" data-tab="timer">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M12 6v6l4 2"/>
-            </svg>
-            <span>타이머</span>
         </button>
         <button class="tab-item" data-tab="achievement">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -322,6 +314,22 @@
                 <path d="M6 3v7a6 6 0 0 0 12 0V3H6z"/>
             </svg>
             <span>업적</span>
+        </button>
+        <button class="tab-item active" data-tab="record">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+            <span>기록</span>
+        </button>
+        <button class="tab-item" data-tab="timer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2"/>
+            </svg>
+            <span>타이머</span>
         </button>
         <button class="tab-item" data-tab="settings">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

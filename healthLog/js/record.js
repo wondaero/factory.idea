@@ -2,7 +2,7 @@
 
 // 상태 변수
 let currentExercise = null;
-let selectedColor = '#007aff';
+let selectedColor = '#339af0';
 let selectedDate = today;
 let calendarYear = new Date().getFullYear();
 let calendarMonth = new Date().getMonth();
@@ -209,7 +209,7 @@ function getExercisesForDate(dateStr) {
             result.push({
                 id: exercise.id,
                 name: exercise.name,
-                color: exercise.color || '#007aff',
+                color: exercise.color || '#339af0',
                 memo: exercise.memo || '',
                 sets: exerciseMap[exercise.id].length,
                 records: exerciseMap[exercise.id]
@@ -227,7 +227,7 @@ function getExerciseColorsForDate(dateStr) {
         if (getDateFromDatetime(record.datetime) === dateStr && !seen.has(record.exerciseId)) {
             seen.add(record.exerciseId);
             const exercise = getExerciseById(record.exerciseId);
-            colors.push(exercise?.color || '#007aff');
+            colors.push(exercise?.color || '#339af0');
             if (colors.length >= 4) break;
         }
     }
@@ -472,7 +472,7 @@ const exerciseMemoDisplay = document.getElementById('exerciseMemoDisplay');
 const setMemoInput = document.getElementById('setMemo');
 const colorPickerGrid = document.getElementById('colorPickerGrid');
 const colorPreviewBtn = document.getElementById('colorPreviewBtn');
-const colorPickerDropdown = document.getElementById('colorPickerDropdown');
+const colorPickerModal = document.getElementById('colorPickerModal');
 const newExerciseNameInput = document.getElementById('newExerciseName');
 const newExerciseMemoInput = document.getElementById('newExerciseMemo');
 
@@ -488,7 +488,7 @@ function renderColorPicker() {
 }
 
 renderColorPicker();
-let newExerciseColor = '#007aff';
+let newExerciseColor = '#339af0';
 
 function selectNewExerciseColor(color) {
     newExerciseColor = color;
@@ -497,7 +497,17 @@ function selectNewExerciseColor(color) {
 }
 
 colorPreviewBtn.addEventListener('click', () => {
-    colorPickerDropdown.classList.toggle('hidden');
+    colorPickerModal.classList.add('show');
+});
+
+document.getElementById('closeColorPicker').addEventListener('click', () => {
+    colorPickerModal.classList.remove('show');
+});
+
+colorPickerModal.addEventListener('click', e => {
+    if (e.target === colorPickerModal) {
+        colorPickerModal.classList.remove('show');
+    }
 });
 
 colorPickerGrid.addEventListener('click', e => {
@@ -507,7 +517,7 @@ colorPickerGrid.addEventListener('click', e => {
             return;
         }
         selectNewExerciseColor(e.target.dataset.color);
-        colorPickerDropdown.classList.add('hidden');
+        colorPickerModal.classList.remove('show');
     }
 });
 
@@ -717,9 +727,9 @@ exerciseMemo.addEventListener('blur', () => {
 function openAddExercisePage() {
     newExerciseNameInput.value = '';
     newExerciseMemoInput.value = '';
-    newExerciseColor = '#007aff';
+    newExerciseColor = '#339af0';
     selectNewExerciseColor(newExerciseColor);
-    colorPickerDropdown.classList.add('hidden');
+    colorPickerModal.classList.remove('show');
     tabs.settings.classList.add('hidden');
     addExercisePage.classList.remove('hidden');
 }
