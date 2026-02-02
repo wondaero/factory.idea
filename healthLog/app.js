@@ -1695,8 +1695,8 @@ function handleRoute() {
             renderDetail(date);
             updateAddSetBtnColor();
         } else {
-            navigate('record', true);
             isNavigating = false;
+            navigate('record', true);
             handleRoute();
             return;
         }
