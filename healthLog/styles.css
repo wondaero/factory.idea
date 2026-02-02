@@ -74,9 +74,15 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
     background: none;
     border: none;
     color: #007aff;
-    font-size: 28px;
     cursor: pointer;
     padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.back-btn svg {
+    width: 24px;
+    height: 24px;
 }
 
 .view-toggle {
@@ -487,7 +493,9 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
 
 /* Add Exercise Page */
 .add-exercise-page {
-    padding-bottom: 100px;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) 100px max(20px, env(safe-area-inset-left));
 }
 .add-exercise-form {
     padding: 16px;
@@ -762,8 +770,9 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
 
 .empty { text-align: center; color: #999; padding: 50px 20px; font-size: 15px; }
 .editable-title { cursor: pointer; }
-.edit-btn { background: none; border: none; color: #007aff; font-size: 18px; cursor: pointer; padding: 5px 10px; }
-.edit-title-btn { transform: scaleX(-1); }
+.edit-btn { background: none; border: none; color: #007aff; cursor: pointer; padding: 5px 10px; display: flex; align-items: center; }
+.edit-btn svg { width: 18px; height: 18px; }
+.edit-title-btn { }
 .title-input { flex: 1; padding: 8px 12px; border: 1px solid #007aff; border-radius: 8px; font-size: 1.2rem; font-weight: 600; }
 .title-edit-container {
     display: flex;
@@ -981,9 +990,10 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
 .line-path {
     fill: none;
     stroke: url(#lineStrokeGradient);
-    stroke-width: 0.5;
+    stroke-width: 1;
     stroke-linecap: round;
     stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
 }
 .line-area { fill: url(#lineGradient); }
 .line-dot {
