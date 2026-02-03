@@ -143,9 +143,20 @@ function renderWeightChart(chartData) {
     const last = points[points.length - 1];
     const areaD = pathD + ` L ${last.x} ${100 - pad} L ${pad} ${100 - pad} Z`;
 
+    // dot 겹침 여부 판단 (최소 간격 3% 미만이면 숨김)
+    let showDots = true;
+    for (let i = 1; i < points.length; i++) {
+        if (points[i].x - points[i - 1].x < 3) {
+            showDots = false;
+            break;
+        }
+    }
+
     const dots = [];
-    for (let i = 0; i < points.length; i++) {
-        dots.push(`<div class="line-dot" style="left:${points[i].x}%;top:${points[i].y}%"></div>`);
+    if (showDots) {
+        for (let i = 0; i < points.length; i++) {
+            dots.push(`<div class="line-dot" style="left:${points[i].x}%;top:${points[i].y}%"></div>`);
+        }
     }
 
     weightChart.innerHTML = `
