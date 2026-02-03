@@ -75,12 +75,11 @@
                 <header>
                     <button class="back-btn" id="backBtn">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M19 12H5"/>
-                            <path d="M12 19l-7-7 7-7"/>
+                            <path d="M15 18l-6-6 6-6"/>
                         </svg>
                     </button>
                     <h1 id="detailTitle" class="editable-title">운동명</h1>
-                    <button class="edit-btn edit-title-btn" id="editTitleBtn">✏️</button>
+                    <button class="edit-btn" id="editTitleBtn">✏️</button>
                 </header>
                 <div class="exercise-memo-display hidden" id="exerciseMemoDisplay"></div>
 
@@ -89,9 +88,6 @@
 
                 <!-- 입력 폼 영역 -->
                 <div id="inputFormArea">
-                    <div class="memo-row">
-                        <textarea id="exerciseMemo" placeholder="운동 메모 (이 운동에 대한 설명)" rows="2"></textarea>
-                    </div>
                     <div class="date-row">
                         <input type="date" id="dateInput">
                     </div>
@@ -160,6 +156,11 @@
         <!-- Settings Tab -->
         <div id="settingsTab" class="hidden">
             <header>
+                <button class="back-btn hidden" id="settingsBackBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M15 18l-6-6 6-6"/>
+                    </svg>
+                </button>
                 <h1>운동 설정</h1>
                 <button class="header-add-btn" id="openAddExercise">+</button>
             </header>
@@ -179,8 +180,7 @@
         <header>
             <button class="back-btn" id="closeAddExercise">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M19 12H5"/>
-                    <path d="M12 19l-7-7 7-7"/>
+                    <path d="M15 18l-6-6 6-6"/>
                 </svg>
             </button>
             <h1>운동 추가</h1>

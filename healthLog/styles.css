@@ -114,7 +114,7 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
     background: #fff;
     border-radius: 16px;
     padding: 16px;
-    margin-bottom: 20px;
+    margin-bottom: 12px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.08);
     overflow: hidden;
     touch-action: pan-y;
@@ -340,7 +340,6 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
     background: #fff;
     border-radius: 16px;
     padding: 20px;
-    margin-bottom: 20px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 .day-detail-header {
@@ -376,7 +375,6 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
 .day-exercise-item .exercise-name { font-weight: 500; font-size: 15px; }
 .day-exercise-item .exercise-sets { font-size: 13px; color: #888; }
 .day-exercise-item .exercise-memo { font-size: 12px; color: #666; font-style: italic; margin-top: 2px; }
-.day-exercise-item .arrow { color: #ccc; font-size: 18px; }
 .day-exercise-item .delete-btn {
     background: none;
     border: none;
@@ -385,23 +383,6 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
     cursor: pointer;
     padding: 8px 12px;
 }
-.day-actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 12px;
-}
-.day-actions .day-add-btn { flex: 1; margin: 0; }
-.day-clear-btn {
-    padding: 14px 20px;
-    background: #ff3b30;
-    color: #fff;
-    border: none;
-    border-radius: 12px;
-    font-size: 15px;
-    font-weight: 500;
-    cursor: pointer;
-}
-.day-clear-btn:active { background: #d63029; }
 .day-add-btn {
     width: 100%;
     padding: 14px;
@@ -416,7 +397,7 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
 }
 
 /* Feed View */
-.feed-view { display: flex; flex-direction: column; gap: 16px; }
+.feed-view { display: flex; flex-direction: column; gap: 12px; }
 .feed-day {
     background: #fff;
     border-radius: 16px;
@@ -439,9 +420,6 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
     color: #007aff;
     font-size: 24px;
     cursor: pointer;
-}
-.feed-add-today {
-    margin-bottom: 16px;
 }
 .feed-add-today-btn {
     width: 100%;
@@ -485,12 +463,17 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
 
 /* Add Exercise Page */
 .add-exercise-page {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
     max-width: 600px;
-    margin: 0 auto;
-    padding: 0 20px 100px 20px;
-}
-.add-exercise-form {
-    padding: 16px;
+    height: 100%;
+    background: #f5f5f7;
+    overflow-y: auto;
+    z-index: 100;
+    padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) 100px max(20px, env(safe-area-inset-left));
 }
 .name-color-row {
     display: flex;
@@ -573,20 +556,6 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
 }
 .submit-btn:active { background: #0056b3; }
 
-.color-picker {
-    background: #fff;
-    border-radius: 12px;
-    padding: 12px;
-    margin-bottom: 20px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-.color-presets { display: flex; flex-wrap: wrap; gap: 8px; }
-.color-preset { width: 32px; height: 32px; border-radius: 8px; border: 2px solid transparent; cursor: pointer; transition: transform 0.1s, border-color 0.1s; }
-.color-preset:active { transform: scale(0.9); }
-.color-preset.selected { border-color: #1d1d1f; }
-
-.section-title { font-size: 13px; color: #666; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
-
 .sort-toggle {
     display: flex;
     gap: 8px;
@@ -623,7 +592,6 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
 .list-item h3 { font-size: 1.05rem; font-weight: 500; }
 .list-item .count { color: #888; font-size: 14px; margin-top: 4px; }
 .list-item .item-memo { color: #666; font-size: 12px; font-style: italic; margin-top: 2px; }
-.list-item .arrow { color: #ccc; font-size: 20px; }
 .list-item .color-dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 10px; }
 .delete-btn { background: none; border: none; color: #ff3b30; font-size: 20px; cursor: pointer; padding: 8px 12px; }
 
@@ -745,31 +713,36 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
     font-size: 14px;
 }
 .set-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
     padding: 14px 16px;
     background: #fff;
     border-radius: 12px;
     margin-bottom: 8px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    cursor: pointer;
 }
-.set-item .info { font-size: 16px; }
+.set-item-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.set-item .info { font-size: 16px; flex: 1; }
 .set-item strong { font-size: 18px; font-weight: 600; }
 .set-item .meta { color: #888; font-size: 13px; }
-.set-item .set-memo { color: #666; font-size: 13px; margin-top: 4px; font-style: italic; }
+.set-item .delete-btn { margin-left: 8px; }
+.set-item .set-memo { color: #666; font-size: 13px; margin-top: 8px; }
 .date-label { color: #666; font-size: 13px; font-weight: 500; margin: 20px 0 10px; }
 
 .empty { text-align: center; color: #999; padding: 50px 20px; font-size: 15px; }
 .editable-title { cursor: pointer; }
 .edit-btn { background: none; border: none; color: #007aff; cursor: pointer; padding: 5px 10px; display: flex; align-items: center; }
 .edit-btn svg { width: 18px; height: 18px; }
-.title-input { flex: 1; padding: 8px 12px; border: 1px solid #007aff; border-radius: 8px; font-size: 1.2rem; font-weight: 600; }
+.title-input { flex: 1 0 auto; width: 1px; padding: 8px 12px; border: 1px solid #007aff; border-radius: 8px; font-size: 1.2rem; font-weight: 600; }
 .title-edit-container {
     display: flex;
     flex: 1;
     gap: 8px;
     align-items: center;
+    
 }
 .title-edit-btns {
     display: flex;
@@ -835,26 +808,6 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
 }
 .chart-period-btn:active {
     transform: scale(0.95);
-}
-.chart-custom-date {
-    display: none;
-    gap: 8px;
-    margin-bottom: 16px;
-    align-items: center;
-}
-.chart-custom-date.show {
-    display: flex;
-}
-.chart-custom-date input {
-    flex: 1;
-    padding: 10px 12px;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    font-size: 14px;
-}
-.chart-custom-date span {
-    color: #888;
-    font-size: 14px;
 }
 .chart-section {
     background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
@@ -1003,7 +956,7 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
 .line-labels {
     display: flex;
     justify-content: space-between;
-    padding: 8px 10px 0;
+    padding: 8px 10px;
 }
 .line-label {
     font-size: 11px;
@@ -1012,6 +965,7 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
     background: rgba(255,255,255,0.9);
     padding: 4px 8px;
     border-radius: 6px;
+    text-align: center;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
@@ -1167,6 +1121,7 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
 /* 반응형 - 280px까지 지원 */
 @media (max-width: 360px) {
     .container { padding: 12px; }
+    .add-exercise-page{ padding: 12px; }
     header h1 { font-size: 1.2rem; }
     .title-save-btn,
     .title-cancel-btn {
@@ -1208,12 +1163,9 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
     .chart-section { padding: 14px; }
     .chart-select { padding: 12px; font-size: 14px; }
     .chart-period-btn { padding: 6px 10px; font-size: 12px; }
-    .chart-custom-date input { padding: 8px 10px; font-size: 13px; }
 
     .modal-content { padding: 16px; width: 95%; }
     .month-btn { padding: 10px; font-size: 13px; }
-    .year-selector button { width: 32px; height: 32px; }
-    .year-selector span { font-size: 18px; }
 
     .tab-item { padding: 6px 12px; font-size: 10px; }
     .tab-item svg { width: 20px; height: 20px; }
@@ -1221,7 +1173,8 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
 
 @media (max-width: 300px) {
     .container { padding: 8px; }
-    header { gap: 8px; margin-bottom: 16px; }
+    .add-exercise-page{ padding: 8px; }
+    header { gap: 8px; margin-bottom: 10px; }
     header h1 { font-size: 1.1rem; }
     .title-save-btn,
     .title-cancel-btn {
@@ -1256,7 +1209,6 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
 
     .search-row input { padding: 10px 8px; font-size: 13px; }
 
-    .section-title { font-size: 11px; margin-bottom: 8px; }
     .list-item { padding: 10px; border-radius: 12px; }
     .list-item h3 { font-size: 0.9rem; }
     .list-item .count { font-size: 12px; }
@@ -1275,8 +1227,6 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
 
     .chart-period-selector { gap: 4px; }
     .chart-period-btn { padding: 5px 8px; font-size: 11px; }
-    .chart-custom-date { flex-wrap: wrap; gap: 6px; }
-    .chart-custom-date input { padding: 8px; font-size: 12px; min-width: 0; }
 
     .tab-item { padding: 6px 8px; font-size: 9px; }
     .tab-item svg { width: 18px; height: 18px; }

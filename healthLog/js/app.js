@@ -41,7 +41,6 @@ function handleRoute() {
             detailTitle.textContent = exercise.name;
             mainPage.classList.add('hidden');
             detailPage.classList.remove('hidden');
-            exerciseMemo.value = exercise.memo || '';
             if (exercise.memo) {
                 exerciseMemoDisplay.textContent = exercise.memo;
                 exerciseMemoDisplay.classList.remove('hidden');
@@ -92,9 +91,18 @@ function handleRoute() {
         tabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === 'achievement'));
         renderAchievements();
     } else if (route === 'settings') {
+        const isAddMode = parts[1] === 'add';
         Object.values(tabs).forEach(t => t.classList.add('hidden'));
         tabs.settings.classList.remove('hidden');
         tabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === 'settings'));
+
+        const settingsBackBtn = document.getElementById('settingsBackBtn');
+        if (isAddMode) {
+            settingsBackBtn.classList.remove('hidden');
+        } else {
+            settingsBackBtn.classList.add('hidden');
+        }
+
         renderMain();
     } else {
         // record (기본)
@@ -105,7 +113,11 @@ function handleRoute() {
         detailPage.classList.add('hidden');
         currentExercise = null;
         renderMain();
-        currentViewMode === 'calendar' ? renderCalendar() : renderFeedView();
+        if (currentViewMode === 'calendar') {
+            showDayDetail(selectedDate || today);
+        } else {
+            renderFeedView();
+        }
     }
     isNavigating = false;
 }
@@ -113,7 +125,6 @@ function handleRoute() {
 window.addEventListener('popstate', handleRoute);
 
 // 기존 함수들 수정 - navigate 호출 추가
-const originalSwitchTab = switchTab;
 switchTab = function(tabName) {
     if (tabName === 'record') {
         navigate('record');
@@ -123,13 +134,11 @@ switchTab = function(tabName) {
     handleRoute();
 };
 
-const originalShowMain = showMain;
 showMain = function() {
     navigate('record');
     handleRoute();
 };
 
-const originalShowDetailById = showDetailById;
 showDetailById = function(id, date = null) {
     selectedDate = date || selectedDate || today;
     if (date) {
@@ -140,10 +149,14 @@ showDetailById = function(id, date = null) {
     handleRoute();
 };
 
-const originalShowDetail = showDetail;
 showDetail = function(name, date = null) {
     const exercise = getExerciseByName(name);
     if (exercise) showDetailById(exercise.id, date);
+};
+
+goToSettingsForAdd = function() {
+    navigate('settings/add');
+    handleRoute();
 };
 
 // 탭 버튼 이벤트 재설정
@@ -153,6 +166,7 @@ tabButtons.forEach(btn => {
 
 // 뒤로가기 버튼
 document.getElementById('backBtn').onclick = () => history.back();
+document.getElementById('settingsBackBtn').onclick = () => history.back();
 
 // ==================== 초기화 ====================
 
