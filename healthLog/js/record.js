@@ -150,8 +150,8 @@ calendarContainer.addEventListener('touchend', () => {
 
 function selectFirstDayOfMonth() {
     selectedDate = `${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}-01`;
-    dayDetail.classList.add('hidden');
     renderCalendar();
+    showDayDetail(selectedDate);
 }
 
 // ==================== Month Picker ====================
