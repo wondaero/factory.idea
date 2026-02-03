@@ -14,7 +14,7 @@ let currentChartPeriod = 'week';
 const LITE_CHART_PERIODS = ['week', '1month'];
 
 function updateChartSelect() {
-    const opts = ['<option value="">운동을 선택하세요</option>'];
+    const opts = [`<option value="">${t('selectExercise')}</option>`];
     const exercises = data.exercises;
     for (let i = 0, len = exercises.length; i < len; i++) {
         opts.push(`<option value="${exercises[i].id}">${exercises[i].name}</option>`);
@@ -56,7 +56,7 @@ function renderCharts(exerciseId) {
 
     if (!records.length) {
         chartContent.classList.add('hidden');
-        chartEmpty.textContent = '기록이 없습니다';
+        chartEmpty.textContent = t('noRecords');
         chartEmpty.classList.remove('hidden');
         return;
     }
@@ -75,7 +75,7 @@ function renderCharts(exerciseId) {
     const dates = Object.keys(byDate).sort();
     if (!dates.length) {
         chartContent.classList.add('hidden');
-        chartEmpty.textContent = '선택한 기간에 기록이 없습니다';
+        chartEmpty.textContent = t('noRecordsInPeriod');
         chartEmpty.classList.remove('hidden');
         return;
     }
@@ -106,7 +106,7 @@ function formatDateShort(dateStr) {
 }
 
 function renderWeightChart(chartData) {
-    if (!chartData.length) { weightChart.innerHTML = '<div class="empty">데이터 없음</div>'; return; }
+    if (!chartData.length) { weightChart.innerHTML = `<div class="empty">${t('noData')}</div>`; return; }
 
     let maxW = chartData[0].maxWeight, minW = chartData[0].maxWeight;
     for (let i = 1, len = chartData.length; i < len; i++) {
@@ -185,7 +185,7 @@ function renderWeightChart(chartData) {
 }
 
 function renderVolumeChart(chartData) {
-    if (!chartData.length) { volumeChart.innerHTML = '<div class="empty">데이터 없음</div>'; return; }
+    if (!chartData.length) { volumeChart.innerHTML = `<div class="empty">${t('noData')}</div>`; return; }
 
     let maxV = chartData[0].totalVolume, minV = chartData[0].totalVolume;
     for (let i = 1, len = chartData.length; i < len; i++) {
@@ -225,7 +225,7 @@ chartPeriodBtns.forEach(btn => {
     btn.onclick = () => {
         const period = btn.dataset.period;
         if (!isPremium && !LITE_CHART_PERIODS.includes(period)) {
-            showUpgradePrompt('확장 차트 기간');
+            showUpgradePrompt(t('extendedChartPeriod'));
             return;
         }
         if (period === 'custom') { openCustomDateModal(); return; }

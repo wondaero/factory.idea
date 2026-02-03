@@ -32,7 +32,7 @@ function getAvailableColors() {
 }
 
 function showUpgradePrompt(featureName) {
-    alert(`"${featureName}"은(는) 프리미엄 기능입니다.\n프리미엄으로 업그레이드하세요!`);
+    alert(`"${featureName}" - ${typeof t === 'function' ? t('premiumFeature') : 'Premium feature.\nUpgrade to Premium!'}`);
 }
 
 // 데이터 로드 및 마이그레이션

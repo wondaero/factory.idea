@@ -177,7 +177,8 @@ monthPickerModal.onclick = e => { if (e.target === monthPickerModal) monthPicker
 function renderYearGrid() {
     const html = [];
     for (let y = yearRangeEnd; y >= yearRangeStart; y--) {
-        html.push(`<button class="year-btn${y === pickerYear ? ' current' : ''}" data-year="${y}">${y}년</button>`);
+        const label = currentLang === 'ko' ? `${y}년` : y;
+        html.push(`<button class="year-btn${y === pickerYear ? ' current' : ''}" data-year="${y}">${label}</button>`);
     }
     yearGrid.innerHTML = html.join('');
 }
@@ -204,7 +205,7 @@ yearGrid.onclick = e => {
 };
 
 function renderMonthPicker() {
-    const months = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+    const months = t('months');
     monthGrid.innerHTML = months.map((m, i) =>
         `<button class="month-btn${pickerYear === calendarYear && i === calendarMonth ? ' current' : ''}" data-month="${i}">${m}</button>`
     ).join('');
@@ -316,14 +317,24 @@ function renderMonthDays(year, month, container) {
 }
 
 function renderCalendar() {
-    calendarTitleBtn.textContent = `${calendarYear}년 ${calendarMonth + 1}월`;
+    calendarTitleBtn.textContent = formatYearMonth(calendarYear, calendarMonth);
     renderMonthDays(calendarYear, calendarMonth, calendarDays);
+    // 요일 헤더 업데이트
+    const weekdaysEl = document.getElementById('calendarWeekdays');
+    if (weekdaysEl) {
+        weekdaysEl.innerHTML = t('weekdays').map(d => `<span>${d}</span>`).join('');
+    }
 }
 
 function showDayDetail(dateStr) {
     selectedDate = dateStr;
     const date = parseLocalDate(dateStr);
-    dayDetailTitle.textContent = dateStr === today ? '오늘 기록' : `${date.getMonth() + 1}월 ${date.getDate()}일 기록`;
+    if (dateStr === today) {
+        dayDetailTitle.textContent = t('todayRecord');
+    } else {
+        const m = currentLang === 'ko' ? date.getMonth() + 1 : t('months')[date.getMonth()];
+        dayDetailTitle.textContent = t('monthDayRecord', m, date.getDate());
+    }
 
     const exercises = getExercisesForDate(dateStr);
     const hasRecords = exercises.length > 0;
@@ -337,13 +348,13 @@ function showDayDetail(dateStr) {
                 <span class="color-dot" style="background:${ex.color}"></span>
                 <div class="exercise-info">
                     <div class="exercise-name">${ex.name}</div>
-                    <div class="exercise-sets">${ex.sets}세트</div>
+                    <div class="exercise-sets">${t('nSets', ex.sets)}</div>
                     ${ex.memo ? `<div class="exercise-memo">${ex.memo}</div>` : ''}
                 </div>
                 <button class="delete-btn" data-delete-id="${ex.id}">×</button>
             </div>
         `).join('')
-        : '<div class="empty" style="padding:20px">기록이 없습니다</div>';
+        : `<div class="empty" style="padding:20px">${t('noRecords')}</div>`;
 
     dayDetail.classList.remove('hidden');
     renderCalendar();
@@ -382,7 +393,8 @@ $('dayAddBtn').onclick = () => goToSettingsForAdd();
 function deleteExerciseForDate(exerciseId, dateStr) {
     const exercise = getExerciseById(exerciseId);
     const date = parseLocalDate(dateStr);
-    if (!confirm(`"${exercise?.name || '운동'}" ${date.getMonth() + 1}월 ${date.getDate()}일 기록을 삭제할까요?`)) return;
+    const m = currentLang === 'ko' ? date.getMonth() + 1 : t('months')[date.getMonth()];
+    if (!confirm(t('deleteRecordConfirm', exercise?.name || 'Exercise', m, date.getDate()))) return;
     data.records = data.records.filter(r => !(r.exerciseId === exerciseId && r.datetime.slice(0, 10) === dateStr));
     save();
     showDayDetail(dateStr);
@@ -392,8 +404,8 @@ function clearAllForDate(dateStr) {
     const exercises = getExercisesForDate(dateStr);
     if (!exercises.length) { dayDetail.classList.add('hidden'); return; }
     const date = parseLocalDate(dateStr);
-    const label = dateStr === today ? '오늘' : `${date.getMonth() + 1}월 ${date.getDate()}일`;
-    if (!confirm(`${label}의 모든 운동 기록을 삭제할까요?\n(${exercises.map(e => e.name).join(', ')})`)) return;
+    const label = dateStr === today ? t('today') : formatMonthDay(dateStr);
+    if (!confirm(t('deleteAllRecordsConfirm', label, exercises.map(e => e.name).join(', ')))) return;
     data.records = data.records.filter(r => r.datetime.slice(0, 10) !== dateStr);
     save();
     showDayDetail(dateStr);
@@ -413,16 +425,15 @@ function getAllRecordDates() {
 }
 
 function formatDateKorean(dateStr) {
-    const d = parseLocalDate(dateStr);
-    return `${d.getMonth() + 1}월 ${d.getDate()}일 (${'일월화수목금토'[d.getDay()]})`;
+    return formatMonthDayWithWeekday(dateStr);
 }
 
 function renderFeedView() {
     const dates = getAllRecordDates();
-    const addBtn = `<div class="feed-add-today"><button class="feed-add-today-btn" data-date="${today}">+ 기록 추가</button></div>`;
+    const addBtn = `<div class="feed-add-today"><button class="feed-add-today-btn" data-date="${today}">+ ${t('addRecord')}</button></div>`;
 
     if (!dates.length) {
-        feedView.innerHTML = addBtn + '<div class="empty">기록이 없습니다</div>';
+        feedView.innerHTML = addBtn + `<div class="empty">${t('noRecords')}</div>`;
         return;
     }
 
@@ -433,7 +444,7 @@ function renderFeedView() {
         const isToday = dateStr === today;
         html.push(`<div class="feed-day">
             <div class="feed-day-header">
-                <span class="feed-day-date${isToday ? ' today' : ''}">${isToday ? '오늘' : formatDateKorean(dateStr)}</span>
+                <span class="feed-day-date${isToday ? ' today' : ''}">${isToday ? t('today') : formatDateKorean(dateStr)}</span>
                 <button class="feed-day-add" data-date="${dateStr}">+</button>
             </div>
             <div class="feed-exercises">${exercises.map(ex => `
@@ -467,7 +478,7 @@ function renderMain(searchQuery = '') {
     });
 
     if (!data.exercises.length) {
-        exerciseList.innerHTML = '<div class="empty">운동을 추가하세요</div>';
+        exerciseList.innerHTML = `<div class="empty">${t('noExercises')}</div>`;
         return;
     }
 
@@ -478,10 +489,10 @@ function renderMain(searchQuery = '') {
     }
 
     let sorted = [...filtered];
-    if (exerciseSortOrder === 'name') sorted.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+    if (exerciseSortOrder === 'name') sorted.sort((a, b) => a.name.localeCompare(b.name, currentLang === 'ko' ? 'ko' : 'en'));
 
     if (!sorted.length) {
-        exerciseList.innerHTML = '<div class="empty">검색 결과가 없습니다</div>';
+        exerciseList.innerHTML = `<div class="empty">${t('noResults')}</div>`;
         return;
     }
 
@@ -499,7 +510,7 @@ function renderMain(searchQuery = '') {
                 <div class="color-dot" style="background:${ex.color}"></div>
                 <div>
                     <h3>${ex.name}</h3>
-                    <span class="count">오늘 ${todayCounts[ex.id] || 0}세트</span>
+                    <span class="count">${t('todaySets', todayCounts[ex.id] || 0)}</span>
                     ${ex.memo ? `<div class="item-memo">${ex.memo}</div>` : ''}
                 </div>
             </div>
@@ -533,11 +544,11 @@ function renderDetail(filterDate = null) {
     recordsPage = 0;
 
     if (historyToggleText) {
-        historyToggleText.textContent = isHistoryVisible ? `숨기기 (${exerciseRecords.length})` : `보기 (${exerciseRecords.length})`;
+        historyToggleText.textContent = isHistoryVisible ? `${t('hide')} (${exerciseRecords.length})` : `${t('show')} (${exerciseRecords.length})`;
     }
 
     if (!allSortedDates.length) {
-        setList.innerHTML = '<div class="empty">기록이 없습니다</div>';
+        setList.innerHTML = `<div class="empty">${t('noRecords')}</div>`;
         loadMoreIndicator.classList.add('hidden');
         return;
     }
@@ -557,7 +568,7 @@ function loadMoreRecords() {
     for (let i = 0, len = dates.length; i < len; i++) {
         const date = dates[i];
         const sets = recordsByDate[date].sort((a, b) => a.datetime.localeCompare(b.datetime));
-        html.push(`<div class="date-label">${date === today ? '오늘' : date}</div>`);
+        html.push(`<div class="date-label">${date === today ? t('today') : date}</div>`);
         for (let j = 0, slen = sets.length; j < slen; j++) {
             const s = sets[j];
             html.push(`<div class="set-item" data-id="${s.id}">
@@ -640,6 +651,11 @@ function renderColorPicker() {
         `<div class="color-option" data-color="${c}" style="background:${c}"></div>`
     ).join('') + (!isPremium ? `<div class="color-option premium-more" data-premium="true">+${PRESET_COLORS.length - LITE_COLORS.length}</div>` : '');
 }
+
+// 초기 언어 설정 적용
+document.addEventListener('DOMContentLoaded', () => {
+    applyTranslations();
+});
 renderColorPicker();
 
 let newExerciseColor = '#339af0';
@@ -658,14 +674,14 @@ colorPickerModal.onclick = e => { if (e.target === colorPickerModal) colorPicker
 
 colorPickerGrid.onclick = e => {
     if (!e.target.classList.contains('color-option')) return;
-    if (e.target.dataset.premium === 'true') { showUpgradePrompt('더 많은 색상'); return; }
+    if (e.target.dataset.premium === 'true') { showUpgradePrompt(t('moreColors')); return; }
     selectNewExerciseColor(e.target.dataset.color);
     colorPickerModal.classList.remove('show');
 };
 
 function openAddExercisePage() {
     if (!isPremium && data.exercises.length >= LITE_MAX_EXERCISES) {
-        showUpgradePrompt(`운동 ${LITE_MAX_EXERCISES}개 이상 등록`);
+        showUpgradePrompt(t('maxExercises', LITE_MAX_EXERCISES));
         return;
     }
     newExerciseNameInput.value = newExerciseMemoInput.value = '';
@@ -683,10 +699,10 @@ function closeAddExercisePage() {
 
 function addExercise() {
     const name = newExerciseNameInput.value.trim();
-    if (!name) { alert('운동 이름을 입력하세요'); return; }
-    if (data.exercises.some(ex => ex.name === name)) { alert('이미 존재하는 운동입니다'); return; }
+    if (!name) { alert(t('enterExerciseName')); return; }
+    if (data.exercises.some(ex => ex.name === name)) { alert(t('exerciseExists')); return; }
     if (!isPremium && data.exercises.length >= LITE_MAX_EXERCISES) {
-        showUpgradePrompt(`운동 ${LITE_MAX_EXERCISES}개 이상 등록`);
+        showUpgradePrompt(t('maxExercises', LITE_MAX_EXERCISES));
         return;
     }
     data.exercises.push({
@@ -711,7 +727,7 @@ exerciseList.onclick = e => {
     if (e.target.classList.contains('delete-btn')) {
         const id = e.target.dataset.id;
         const ex = getExerciseById(id);
-        if (!confirm(`"${ex?.name}" 운동을 삭제할까요?`)) return;
+        if (!confirm(t('deleteExerciseConfirm', ex?.name))) return;
         data.exercises = data.exercises.filter(ex => ex.id !== id);
         data.records = data.records.filter(r => r.exerciseId !== id);
         save();
@@ -740,8 +756,8 @@ function startEditTitle() {
     editContainer.innerHTML = `
         <input type="text" class="title-input" value="${currentName}">
         <div class="title-edit-btns">
-            <button class="title-save-btn">수정</button>
-            <button class="title-cancel-btn">취소</button>
+            <button class="title-save-btn">${t('edit')}</button>
+            <button class="title-cancel-btn">${t('cancel')}</button>
         </div>
     `;
 
@@ -764,7 +780,7 @@ function startEditTitle() {
 
         const existing = data.exercises.find(ex => ex.name === newName && ex.id !== currentExercise);
         if (existing) {
-            if (confirm(`"${newName}" 이미 존재합니다. 합칠까요?`)) {
+            if (confirm(t('mergeExerciseConfirm', newName))) {
                 data.records.forEach(r => { if (r.exerciseId === currentExercise) r.exerciseId = existing.id; });
                 data.exercises = data.exercises.filter(ex => ex.id !== currentExercise);
                 currentExercise = existing.id;
@@ -871,7 +887,7 @@ historyToggleBtn.onclick = () => {
     historyToggleBtn.classList.toggle('active', isHistoryVisible);
     setListContainer.classList.toggle('hidden', !isHistoryVisible);
     const total = (getRecordsByExerciseIndex()[currentExercise] || []).length;
-    historyToggleText.textContent = isHistoryVisible ? `숨기기 (${total})` : `보기 (${total})`;
+    historyToggleText.textContent = isHistoryVisible ? `${t('hide')} (${total})` : `${t('show')} (${total})`;
 };
 
 setListContainer.onscroll = () => {

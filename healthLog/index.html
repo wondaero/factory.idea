@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" id="htmlRoot">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,6 +13,7 @@
             <div id="mainPage">
                 <header>
                     <h1>Health Log</h1>
+                    <button class="lang-toggle-btn" id="langToggleBtn" onclick="toggleLanguage()">EN</button>
                     <div class="view-toggle">
                         <button id="calendarViewBtn" class="active">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -46,7 +47,7 @@
                                 <button id="nextMonth">›</button>
                             </div>
                         </div>
-                        <div class="calendar-weekdays">
+                        <div class="calendar-weekdays" id="calendarWeekdays">
                             <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
                         </div>
                         <div class="calendar-days" id="calendarDays"></div>
@@ -58,7 +59,7 @@
                             <button class="day-detail-close" id="closeDayDetail">×</button>
                         </div>
                         <div class="day-exercises" id="dayExercises"></div>
-                        <button class="day-add-btn" id="dayAddBtn">+ 기록 추가</button>
+                        <button class="day-add-btn" id="dayAddBtn" data-i18n="addRecord">+ 기록 추가</button>
                     </div>
 
                 </div>
@@ -78,13 +79,13 @@
                             <path d="M15 18l-6-6 6-6"/>
                         </svg>
                     </button>
-                    <h1 id="detailTitle" class="editable-title">운동명</h1>
+                    <h1 id="detailTitle" class="editable-title" data-i18n="exerciseName">운동명</h1>
                     <button class="edit-btn" id="editTitleBtn">✏️</button>
                 </header>
                 <div class="exercise-memo-display hidden" id="exerciseMemoDisplay"></div>
 
                 <!-- 캘린더에서 접근 시 보이는 버튼 -->
-                <button class="add-record-toggle-btn hidden" id="addRecordToggleBtn">+ 기록 추가</button>
+                <button class="add-record-toggle-btn hidden" id="addRecordToggleBtn" data-i18n="addRecord">+ 기록 추가</button>
 
                 <!-- 입력 폼 영역 -->
                 <div id="inputFormArea">
@@ -96,59 +97,59 @@
                         <input type="number" id="repsInput" placeholder="reps" inputmode="numeric">
                     </div>
                     <div class="memo-row">
-                        <input type="text" id="setMemo" placeholder="세트 메모 (선택)">
+                        <input type="text" id="setMemo" data-i18n="setMemo" placeholder="세트 메모 (선택)">
                     </div>
                     <button class="add-set-btn" id="addSetBtn">Add Set</button>
                 </div>
 
                 <div class="history-header">
-                    <span class="history-title">기록</span>
+                    <span class="history-title" data-i18n="record">기록</span>
                     <button class="history-toggle-btn" id="historyToggleBtn">
-                        <span id="historyToggleText">보기</span>
+                        <span id="historyToggleText" data-i18n="show">보기</span>
                         <span class="history-toggle-icon" id="historyToggleIcon">▼</span>
                     </button>
                 </div>
                 <div class="set-list-container hidden" id="setListContainer">
                     <div id="setList"></div>
-                    <div class="load-more-indicator hidden" id="loadMoreIndicator">불러오는 중...</div>
+                    <div class="load-more-indicator hidden" id="loadMoreIndicator" data-i18n="loading">불러오는 중...</div>
                 </div>
             </div>
         </div>
 
         <!-- Chart Tab -->
         <div id="chartTab" class="hidden">
-            <header><h1>차트</h1></header>
+            <header><h1 data-i18n="tabChart">차트</h1></header>
             <select class="chart-select" id="chartExerciseSelect">
-                <option value="">운동을 선택하세요</option>
+                <option value="" data-i18n="selectExercise">운동을 선택하세요</option>
             </select>
             <div class="chart-period-selector" id="chartPeriodSelector">
-                <button class="chart-period-btn active" data-period="week">금주</button>
-                <button class="chart-period-btn" data-period="1month">1개월</button>
-                <button class="chart-period-btn" data-period="3month">3개월</button>
-                <button class="chart-period-btn" data-period="6month">6개월</button>
-                <button class="chart-period-btn" data-period="1year">1년</button>
-                <button class="chart-period-btn" data-period="custom">커스텀</button>
+                <button class="chart-period-btn active" data-period="week" data-i18n="thisWeek">금주</button>
+                <button class="chart-period-btn" data-period="1month" data-i18n="oneMonth">1개월</button>
+                <button class="chart-period-btn" data-period="3month" data-i18n="threeMonths">3개월</button>
+                <button class="chart-period-btn" data-period="6month" data-i18n="sixMonths">6개월</button>
+                <button class="chart-period-btn" data-period="1year" data-i18n="oneYear">1년</button>
+                <button class="chart-period-btn" data-period="custom" data-i18n="custom">커스텀</button>
             </div>
             <div id="chartContent" class="hidden">
                 <div class="chart-section">
-                    <h3>무게 변화 추이</h3>
+                    <h3 data-i18n="weightTrend">무게 변화 추이</h3>
                     <div class="chart-container">
                         <div class="line-chart" id="weightChart"></div>
                     </div>
                 </div>
                 <div class="chart-section">
-                    <h3>일별 볼륨 (kg × reps)</h3>
+                    <h3 data-i18n="dailyVolume">일별 볼륨 (kg × reps)</h3>
                     <div class="chart-container">
                         <div class="bar-chart" id="volumeChart"></div>
                     </div>
                 </div>
             </div>
-            <div id="chartEmpty" class="empty">운동을 선택하면 차트가 표시됩니다</div>
+            <div id="chartEmpty" class="empty" data-i18n="chartEmpty">운동을 선택하면 차트가 표시됩니다</div>
         </div>
 
         <!-- Achievement Tab -->
         <div id="achievementTab" class="hidden">
-            <header><h1>업적</h1></header>
+            <header><h1 data-i18n="tabAchievement">업적</h1></header>
             <div class="achievement-summary" id="achievementSummary"></div>
             <div class="achievement-list" id="achievementList"></div>
         </div>
@@ -161,15 +162,15 @@
                         <path d="M15 18l-6-6 6-6"/>
                     </svg>
                 </button>
-                <h1>운동 설정</h1>
+                <h1 data-i18n="tabSettings">운동 설정</h1>
                 <button class="header-add-btn" id="openAddExercise">+</button>
             </header>
             <div class="search-row">
-                <input type="text" id="exerciseSearch" placeholder="운동 검색">
+                <input type="text" id="exerciseSearch" data-i18n="searchExercise" placeholder="운동 검색">
             </div>
             <div class="sort-toggle" id="sortToggle">
-                <button class="sort-btn active" data-sort="registered">등록순</button>
-                <button class="sort-btn" data-sort="name">가나다순</button>
+                <button class="sort-btn active" data-sort="registered" data-i18n="sortByRegistered">등록순</button>
+                <button class="sort-btn" data-sort="name" data-i18n="sortByName">가나다순</button>
             </div>
             <div class="list" id="exerciseList"></div>
         </div>
@@ -183,18 +184,18 @@
                     <path d="M15 18l-6-6 6-6"/>
                 </svg>
             </button>
-            <h1>운동 추가</h1>
+            <h1 data-i18n="addExercise">운동 추가</h1>
         </header>
         <div class="add-exercise-form">
             <div class="name-color-row">
                 <button type="button" class="color-preview-btn" id="colorPreviewBtn"></button>
-                <input type="text" id="newExerciseName" placeholder="운동 이름을 입력하세요">
+                <input type="text" id="newExerciseName" data-i18n="enterExerciseName" placeholder="운동 이름을 입력하세요">
             </div>
             <div class="form-group">
-                <label>메모</label>
-                <textarea id="newExerciseMemo" placeholder="운동에 대한 설명을 입력하세요" rows="3"></textarea>
+                <label data-i18n="memo">메모</label>
+                <textarea id="newExerciseMemo" data-i18n="enterExerciseDesc" placeholder="운동에 대한 설명을 입력하세요" rows="3"></textarea>
             </div>
-            <button class="submit-btn" id="submitAddExercise">추가하기</button>
+            <button class="submit-btn" id="submitAddExercise" data-i18n="addExerciseBtn">추가하기</button>
         </div>
     </div>
 
@@ -202,7 +203,7 @@
     <div class="modal-overlay" id="colorPickerModal">
         <div class="modal-content color-picker-content">
             <div class="modal-header">
-                <h3>색상 선택</h3>
+                <h3 data-i18n="selectColor">색상 선택</h3>
                 <button class="modal-close" id="closeColorPicker">×</button>
             </div>
             <div class="color-picker-grid" id="colorPickerGrid"></div>
@@ -213,7 +214,7 @@
     <div class="modal-overlay" id="monthPickerModal">
         <div class="modal-content month-picker-content">
             <div class="modal-header">
-                <h3>날짜 선택</h3>
+                <h3 data-i18n="selectDate">날짜 선택</h3>
                 <button class="modal-close" id="closeMonthPicker">×</button>
             </div>
             <div class="year-scroll-container" id="yearScrollContainer">
@@ -227,25 +228,25 @@
     <div class="modal-overlay" id="setEditModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>세트 수정</h3>
+                <h3 data-i18n="editSet">세트 수정</h3>
                 <button class="modal-close" id="closeSetEdit">×</button>
             </div>
             <div class="set-edit-form">
                 <div class="form-group">
-                    <label>무게 (kg)</label>
+                    <label data-i18n="weightKg">무게 (kg)</label>
                     <input type="number" id="editWeight" inputmode="decimal">
                 </div>
                 <div class="form-group">
-                    <label>횟수</label>
+                    <label data-i18n="reps">횟수</label>
                     <input type="number" id="editReps" inputmode="numeric">
                 </div>
                 <div class="form-group">
-                    <label>메모</label>
-                    <input type="text" id="editSetMemo" placeholder="메모 (선택)">
+                    <label data-i18n="memo">메모</label>
+                    <input type="text" id="editSetMemo" data-i18n="memoOptional" placeholder="메모 (선택)">
                 </div>
                 <div class="modal-actions">
-                    <button class="modal-btn cancel" id="cancelSetEdit">취소</button>
-                    <button class="modal-btn save" id="saveSetEdit">저장</button>
+                    <button class="modal-btn cancel" id="cancelSetEdit" data-i18n="cancel">취소</button>
+                    <button class="modal-btn save" id="saveSetEdit" data-i18n="save">저장</button>
                 </div>
             </div>
         </div>
@@ -255,21 +256,21 @@
     <div class="modal-overlay" id="customDateModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>기간 선택</h3>
+                <h3 data-i18n="selectPeriod">기간 선택</h3>
                 <button class="modal-close" id="closeCustomDateModal">×</button>
             </div>
             <div class="custom-date-form">
                 <div class="form-group">
-                    <label>시작일</label>
+                    <label data-i18n="startDate">시작일</label>
                     <input type="date" id="chartStartDate">
                 </div>
                 <div class="form-group">
-                    <label>종료일</label>
+                    <label data-i18n="endDate">종료일</label>
                     <input type="date" id="chartEndDate">
                 </div>
                 <div class="modal-actions">
-                    <button class="modal-btn cancel" id="cancelCustomDate">취소</button>
-                    <button class="modal-btn save" id="applyCustomDate">적용</button>
+                    <button class="modal-btn cancel" id="cancelCustomDate" data-i18n="cancel">취소</button>
+                    <button class="modal-btn save" id="applyCustomDate" data-i18n="apply">적용</button>
                 </div>
             </div>
         </div>
@@ -281,7 +282,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M18 20V10M12 20V4M6 20v-6"/>
             </svg>
-            <span>차트</span>
+            <span data-i18n="tabChart">차트</span>
         </button>
         <button class="tab-item" data-tab="achievement">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -292,7 +293,7 @@
                 <path d="M14 22v-4"/>
                 <path d="M6 3v7a6 6 0 0 0 12 0V3H6z"/>
             </svg>
-            <span>업적</span>
+            <span data-i18n="tabAchievement">업적</span>
         </button>
         <button class="tab-item active" data-tab="record">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -301,7 +302,7 @@
                 <line x1="8" y1="2" x2="8" y2="6"/>
                 <line x1="3" y1="10" x2="21" y2="10"/>
             </svg>
-            <span>기록</span>
+            <span data-i18n="tabRecord">기록</span>
         </button>
         <button class="tab-item" data-tab="settings">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -309,12 +310,13 @@
                 <rect x="5" y="13" width="4" height="6" rx="1" transform="rotate(-45 7 16)"/>
                 <rect x="15" y="5" width="4" height="6" rx="1" transform="rotate(-45 17 8)"/>
             </svg>
-            <span>운동 설정</span>
+            <span data-i18n="tabSettings">운동 설정</span>
         </button>
     </nav>
 
     <!-- JS 모듈 (순서 중요) -->
     <script src="js/data.js"></script>
+    <script src="js/i18n.js"></script>
     <script src="js/record.js"></script>
     <script src="js/chart.js"></script>
     <script src="js/achievement.js"></script>

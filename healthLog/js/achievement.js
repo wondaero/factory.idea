@@ -1,145 +1,146 @@
 // ==================== 업적 시스템 ====================
 
+// 업적 정의 (아이콘, 타입, 프리미엄 여부만 - 텍스트는 i18n에서)
 const ACHIEVEMENTS = [
     // 1. 누적 기록일 (10개)
-    { id: 'firstRecord', title: '시작이 반', desc: '첫 운동 기록', icon: '🎯', type: 'once', premium: false },
-    { id: 'total10', title: '열흘의 기적', desc: '총 10일 기록', icon: '🔟', type: 'once', premium: false },
-    { id: 'total30', title: '한 달 전사', desc: '총 30일 기록', icon: '📅', type: 'once', premium: false },
-    { id: 'total50', title: '오십보백보', desc: '총 50일 기록', icon: '👟', type: 'once', premium: false },
-    { id: 'total100', title: '백전백승', desc: '총 100일 기록', icon: '💯', type: 'once', premium: false },
-    { id: 'total200', title: '이백승', desc: '총 200일 기록', icon: '🏅', type: 'once', premium: true },
-    { id: 'total365', title: '1년 개근', desc: '총 365일 기록', icon: '🎖️', type: 'once', premium: true },
-    { id: 'total500', title: '오백승', desc: '총 500일 기록', icon: '🏆', type: 'once', premium: true },
-    { id: 'total730', title: '2년 누적', desc: '총 730일 기록', icon: '👑', type: 'once', premium: true },
-    { id: 'total1000', title: '천일의 약속', desc: '총 1000일 기록', icon: '💎', type: 'once', premium: true },
+    { id: 'firstRecord', icon: '🎯', type: 'once', premium: false },
+    { id: 'total10', icon: '🔟', type: 'once', premium: false },
+    { id: 'total30', icon: '📅', type: 'once', premium: false },
+    { id: 'total50', icon: '👟', type: 'once', premium: false },
+    { id: 'total100', icon: '💯', type: 'once', premium: false },
+    { id: 'total200', icon: '🏅', type: 'once', premium: true },
+    { id: 'total365', icon: '🎖️', type: 'once', premium: true },
+    { id: 'total500', icon: '🏆', type: 'once', premium: true },
+    { id: 'total730', icon: '👑', type: 'once', premium: true },
+    { id: 'total1000', icon: '💎', type: 'once', premium: true },
 
     // 2. 연속 기록 (10개)
-    { id: 'first3days', title: '작심삼일극복', desc: '3일 연속 기록', icon: '🔥', type: 'once', premium: false },
-    { id: 'streak7', title: '일주일 불꽃', desc: '7일 연속 기록', icon: '🔥', type: 'once', premium: false },
-    { id: 'streak14', title: '2주 마라톤', desc: '14일 연속 기록', icon: '🏃', type: 'once', premium: false },
-    { id: 'streak30', title: '한 달 철인', desc: '30일 연속 기록', icon: '🦾', type: 'once', premium: false },
-    { id: 'streak60', title: '60일 전설', desc: '60일 연속 기록', icon: '⭐', type: 'once', premium: true },
-    { id: 'streak90', title: '분기의 왕', desc: '90일 연속 기록', icon: '🌟', type: 'once', premium: true },
-    { id: 'streak120', title: '4개월 괴물', desc: '120일 연속 기록', icon: '💫', type: 'once', premium: true },
-    { id: 'streak180', title: '반년 괴물', desc: '180일 연속 기록', icon: '🔱', type: 'once', premium: true },
-    { id: 'streak270', title: '9개월 전사', desc: '270일 연속 기록', icon: '⚔️', type: 'once', premium: true },
-    { id: 'streak365', title: '1년 무결석', desc: '365일 연속 기록', icon: '👑', type: 'once', premium: true },
+    { id: 'first3days', icon: '🔥', type: 'once', premium: false },
+    { id: 'streak7', icon: '🔥', type: 'once', premium: false },
+    { id: 'streak14', icon: '🏃', type: 'once', premium: false },
+    { id: 'streak30', icon: '🦾', type: 'once', premium: false },
+    { id: 'streak60', icon: '⭐', type: 'once', premium: true },
+    { id: 'streak90', icon: '🌟', type: 'once', premium: true },
+    { id: 'streak120', icon: '💫', type: 'once', premium: true },
+    { id: 'streak180', icon: '🔱', type: 'once', premium: true },
+    { id: 'streak270', icon: '⚔️', type: 'once', premium: true },
+    { id: 'streak365', icon: '👑', type: 'once', premium: true },
 
     // 3. 주간 빈도 (6개)
-    { id: 'week3', title: '주 3회', desc: '한 주에 3일 이상 (4주 연속)', icon: '📅', type: 'repeat', premium: false },
-    { id: 'week5', title: '주5일제', desc: '한 주에 5일 운동', icon: '📆', type: 'repeat', premium: false },
-    { id: 'week7', title: '체육관관장님?', desc: '한 주에 7일 운동', icon: '🏆', type: 'repeat', premium: true },
-    { id: 'week3for8', title: '꾸준함의 정석', desc: '8주 연속 주 3일 이상', icon: '🎯', type: 'repeat', premium: true },
-    { id: 'week4for12', title: '분기 정복자', desc: '12주 연속 주 4일 이상', icon: '🏅', type: 'repeat', premium: true },
-    { id: 'week5for8', title: '아이언맨', desc: '8주 연속 주 5일 이상', icon: '🦸', type: 'repeat', premium: true },
+    { id: 'week3', icon: '📅', type: 'repeat', premium: false },
+    { id: 'week5', icon: '📆', type: 'repeat', premium: false },
+    { id: 'week7', icon: '🏆', type: 'repeat', premium: true },
+    { id: 'week3for8', icon: '🎯', type: 'repeat', premium: true },
+    { id: 'week4for12', icon: '🏅', type: 'repeat', premium: true },
+    { id: 'week5for8', icon: '🦸', type: 'repeat', premium: true },
 
     // 4. 세트 수 마일스톤 (10개)
-    { id: 'sets100', title: '백 세트 돌파', desc: '총 100세트 달성', icon: '💪', type: 'once', premium: false },
-    { id: 'sets500', title: '오백 세트', desc: '총 500세트 달성', icon: '🏋️', type: 'once', premium: false },
-    { id: 'sets1000', title: '천 세트 클럽', desc: '총 1000세트 달성', icon: '🎯', type: 'once', premium: false },
-    { id: 'sets2500', title: '이천오백 세트', desc: '총 2500세트 달성', icon: '⚡', type: 'once', premium: true },
-    { id: 'sets5000', title: '세트 마스터', desc: '총 5000세트 달성', icon: '🔥', type: 'once', premium: true },
-    { id: 'sets10000', title: '만 세트 레전드', desc: '총 10000세트 달성', icon: '💎', type: 'once', premium: true },
-    { id: 'daySet10', title: '오늘 좀 치네', desc: '하루 10세트 이상', icon: '💥', type: 'repeat', premium: false },
-    { id: 'daySet20', title: '하루종일 운동', desc: '하루 20세트 이상', icon: '🔥', type: 'repeat', premium: true },
-    { id: 'daySet30', title: '세트 폭격기', desc: '하루 30세트 이상', icon: '💣', type: 'repeat', premium: true },
-    { id: 'daySet50', title: '세트 괴물', desc: '하루 50세트 이상', icon: '👹', type: 'repeat', premium: true },
+    { id: 'sets100', icon: '💪', type: 'once', premium: false },
+    { id: 'sets500', icon: '🏋️', type: 'once', premium: false },
+    { id: 'sets1000', icon: '🎯', type: 'once', premium: false },
+    { id: 'sets2500', icon: '⚡', type: 'once', premium: true },
+    { id: 'sets5000', icon: '🔥', type: 'once', premium: true },
+    { id: 'sets10000', icon: '💎', type: 'once', premium: true },
+    { id: 'daySet10', icon: '💥', type: 'repeat', premium: false },
+    { id: 'daySet20', icon: '🔥', type: 'repeat', premium: true },
+    { id: 'daySet30', icon: '💣', type: 'repeat', premium: true },
+    { id: 'daySet50', icon: '👹', type: 'repeat', premium: true },
 
     // 5. 볼륨 마일스톤 (8개) - 전부 프리미엄
-    { id: 'volume1ton', title: '1톤 클럽', desc: '하루 총 볼륨 1,000kg', icon: '🏋️', type: 'repeat', premium: true },
-    { id: 'volume5ton', title: '5톤 괴물', desc: '하루 총 볼륨 5,000kg', icon: '💪', type: 'repeat', premium: true },
-    { id: 'volume10ton', title: '10톤 트럭', desc: '하루 총 볼륨 10,000kg', icon: '🚛', type: 'repeat', premium: true },
-    { id: 'volume20ton', title: '20톤 괴력', desc: '하루 총 볼륨 20,000kg', icon: '🦍', type: 'repeat', premium: true },
-    { id: 'totalVol100ton', title: '100톤 누적', desc: '누적 볼륨 100,000kg', icon: '🏅', type: 'once', premium: true },
-    { id: 'totalVol500ton', title: '500톤 누적', desc: '누적 볼륨 500,000kg', icon: '🏆', type: 'once', premium: true },
-    { id: 'totalVol1000ton', title: '천톤 클럽', desc: '누적 볼륨 1,000,000kg', icon: '💎', type: 'once', premium: true },
-    { id: 'totalVol5000ton', title: '오천톤 레전드', desc: '누적 볼륨 5,000,000kg', icon: '👑', type: 'once', premium: true },
+    { id: 'volume1ton', icon: '🏋️', type: 'repeat', premium: true },
+    { id: 'volume5ton', icon: '💪', type: 'repeat', premium: true },
+    { id: 'volume10ton', icon: '🚛', type: 'repeat', premium: true },
+    { id: 'volume20ton', icon: '🦍', type: 'repeat', premium: true },
+    { id: 'totalVol100ton', icon: '🏅', type: 'once', premium: true },
+    { id: 'totalVol500ton', icon: '🏆', type: 'once', premium: true },
+    { id: 'totalVol1000ton', icon: '💎', type: 'once', premium: true },
+    { id: 'totalVol5000ton', icon: '👑', type: 'once', premium: true },
 
     // 6. 무게 기록 (6개) - 전부 프리미엄
-    { id: 'weight60', title: '60kg 돌파', desc: '60kg 이상 기록', icon: '🏋️', type: 'once', premium: true },
-    { id: 'weight80', title: '80kg 돌파', desc: '80kg 이상 기록', icon: '💪', type: 'once', premium: true },
-    { id: 'weight100', title: '100kg 클럽', desc: '100kg 이상 기록', icon: '🔥', type: 'once', premium: true },
-    { id: 'weight120', title: '120kg 괴력', desc: '120kg 이상 기록', icon: '⚡', type: 'once', premium: true },
-    { id: 'weight140', title: '140kg 전설', desc: '140kg 이상 기록', icon: '💎', type: 'once', premium: true },
-    { id: 'weight160', title: '160kg 신화', desc: '160kg 이상 기록', icon: '👑', type: 'once', premium: true },
+    { id: 'weight60', icon: '🏋️', type: 'once', premium: true },
+    { id: 'weight80', icon: '💪', type: 'once', premium: true },
+    { id: 'weight100', icon: '🔥', type: 'once', premium: true },
+    { id: 'weight120', icon: '⚡', type: 'once', premium: true },
+    { id: 'weight140', icon: '💎', type: 'once', premium: true },
+    { id: 'weight160', icon: '👑', type: 'once', premium: true },
 
     // 7. 볼륨/무게 증가 - 주간 (8개) - 전부 프리미엄
-    { id: 'volumeUpWeek1', title: '볼륨업 (3등급)', desc: '전주 대비 볼륨 1% 증가', icon: '📈', type: 'repeat', premium: true },
-    { id: 'volumeUpWeek3', title: '볼륨업 (2등급)', desc: '전주 대비 볼륨 3% 증가', icon: '📈', type: 'repeat', premium: true },
-    { id: 'volumeUpWeek5', title: '볼륨업 (1등급)', desc: '전주 대비 볼륨 5% 증가', icon: '📈', type: 'repeat', premium: true },
-    { id: 'volumeUpWeek10', title: '볼륨업 (0등급)', desc: '전주 대비 볼륨 10% 증가', icon: '📈', type: 'repeat', premium: true },
-    { id: 'heavyWeek1', title: '웨이팅 (3등급)', desc: '전주 대비 무게 1% 증가', icon: '🏋️', type: 'repeat', premium: true },
-    { id: 'heavyWeek3', title: '웨이팅 (2등급)', desc: '전주 대비 무게 3% 증가', icon: '🏋️', type: 'repeat', premium: true },
-    { id: 'heavyWeek5', title: '웨이팅 (1등급)', desc: '전주 대비 무게 5% 증가', icon: '🏋️', type: 'repeat', premium: true },
-    { id: 'heavyWeek10', title: '웨이팅 (0등급)', desc: '전주 대비 무게 10% 증가', icon: '🏋️', type: 'repeat', premium: true },
+    { id: 'volumeUpWeek1', icon: '📈', type: 'repeat', premium: true },
+    { id: 'volumeUpWeek3', icon: '📈', type: 'repeat', premium: true },
+    { id: 'volumeUpWeek5', icon: '📈', type: 'repeat', premium: true },
+    { id: 'volumeUpWeek10', icon: '📈', type: 'repeat', premium: true },
+    { id: 'heavyWeek1', icon: '🏋️', type: 'repeat', premium: true },
+    { id: 'heavyWeek3', icon: '🏋️', type: 'repeat', premium: true },
+    { id: 'heavyWeek5', icon: '🏋️', type: 'repeat', premium: true },
+    { id: 'heavyWeek10', icon: '🏋️', type: 'repeat', premium: true },
 
     // 8. 볼륨/무게 증가 - 월간 (8개) - 전부 프리미엄
-    { id: 'volumeUpMonth1', title: '메가볼륨 (3등급)', desc: '전월 대비 볼륨 1% 증가', icon: '🚀', type: 'repeat', premium: true },
-    { id: 'volumeUpMonth3', title: '메가볼륨 (2등급)', desc: '전월 대비 볼륨 3% 증가', icon: '🚀', type: 'repeat', premium: true },
-    { id: 'volumeUpMonth5', title: '메가볼륨 (1등급)', desc: '전월 대비 볼륨 5% 증가', icon: '🚀', type: 'repeat', premium: true },
-    { id: 'volumeUpMonth10', title: '메가볼륨 (0등급)', desc: '전월 대비 볼륨 10% 증가', icon: '🚀', type: 'repeat', premium: true },
-    { id: 'heavyMonth1', title: '슈퍼웨이팅 (3등급)', desc: '전월 대비 무게 1% 증가', icon: '💪', type: 'repeat', premium: true },
-    { id: 'heavyMonth3', title: '슈퍼웨이팅 (2등급)', desc: '전월 대비 무게 3% 증가', icon: '💪', type: 'repeat', premium: true },
-    { id: 'heavyMonth5', title: '슈퍼웨이팅 (1등급)', desc: '전월 대비 무게 5% 증가', icon: '💪', type: 'repeat', premium: true },
-    { id: 'heavyMonth10', title: '슈퍼웨이팅 (0등급)', desc: '전월 대비 무게 10% 증가', icon: '💪', type: 'repeat', premium: true },
+    { id: 'volumeUpMonth1', icon: '🚀', type: 'repeat', premium: true },
+    { id: 'volumeUpMonth3', icon: '🚀', type: 'repeat', premium: true },
+    { id: 'volumeUpMonth5', icon: '🚀', type: 'repeat', premium: true },
+    { id: 'volumeUpMonth10', icon: '🚀', type: 'repeat', premium: true },
+    { id: 'heavyMonth1', icon: '💪', type: 'repeat', premium: true },
+    { id: 'heavyMonth3', icon: '💪', type: 'repeat', premium: true },
+    { id: 'heavyMonth5', icon: '💪', type: 'repeat', premium: true },
+    { id: 'heavyMonth10', icon: '💪', type: 'repeat', premium: true },
 
     // 9. 렙수 마일스톤 (6개)
-    { id: 'reps1000', title: '천 렙', desc: '총 1,000렙 달성', icon: '🔢', type: 'once', premium: false },
-    { id: 'reps5000', title: '오천 렙', desc: '총 5,000렙 달성', icon: '🔢', type: 'once', premium: false },
-    { id: 'reps10000', title: '만 렙 달성', desc: '총 10,000렙 달성', icon: '🔢', type: 'once', premium: true },
-    { id: 'reps50000', title: '오만 렙', desc: '총 50,000렙 달성', icon: '🔢', type: 'once', premium: true },
-    { id: 'dayReps100', title: '백렙 데이', desc: '하루 100렙 이상', icon: '💯', type: 'repeat', premium: true },
-    { id: 'dayReps200', title: '이백렙 데이', desc: '하루 200렙 이상', icon: '🔥', type: 'repeat', premium: true },
+    { id: 'reps1000', icon: '🔢', type: 'once', premium: false },
+    { id: 'reps5000', icon: '🔢', type: 'once', premium: false },
+    { id: 'reps10000', icon: '🔢', type: 'once', premium: true },
+    { id: 'reps50000', icon: '🔢', type: 'once', premium: true },
+    { id: 'dayReps100', icon: '💯', type: 'repeat', premium: true },
+    { id: 'dayReps200', icon: '🔥', type: 'repeat', premium: true },
 
     // 10. 운동 다양성 (6개)
-    { id: 'exercise5', title: '초보 탈출', desc: '운동 5개 등록', icon: '📚', type: 'once', premium: false },
-    { id: 'exercise10', title: '다재다능', desc: '운동 10개 등록', icon: '📚', type: 'once', premium: false },
-    { id: 'exercise20', title: '운동 백과사전', desc: '운동 20개 등록', icon: '📖', type: 'once', premium: true },
-    { id: 'dayEx3', title: '트리플 콤보', desc: '하루 3종류 운동', icon: '🎯', type: 'repeat', premium: false },
-    { id: 'dayEx5', title: '펜타킬', desc: '하루 5종류 운동', icon: '⚔️', type: 'repeat', premium: true },
-    { id: 'dayEx7', title: '럭키 세븐', desc: '하루 7종류 운동', icon: '🍀', type: 'repeat', premium: true },
+    { id: 'exercise5', icon: '📚', type: 'once', premium: false },
+    { id: 'exercise10', icon: '📚', type: 'once', premium: false },
+    { id: 'exercise20', icon: '📖', type: 'once', premium: true },
+    { id: 'dayEx3', icon: '🎯', type: 'repeat', premium: false },
+    { id: 'dayEx5', icon: '⚔️', type: 'repeat', premium: true },
+    { id: 'dayEx7', icon: '🍀', type: 'repeat', premium: true },
 
     // 11. 시간대/요일 (7개) - 전부 프리미엄
-    { id: 'earlyBird', title: '얼리버드', desc: '오전 6시 이전 기록', icon: '🌅', type: 'repeat', premium: true },
-    { id: 'nightOwl', title: '올빼미', desc: '밤 10시 이후 기록', icon: '🦉', type: 'repeat', premium: true },
-    { id: 'earlyBird10', title: '아침형 인간', desc: '오전 운동 10회 누적', icon: '☀️', type: 'once', premium: true },
-    { id: 'nightOwl10', title: '야행성', desc: '밤 운동 10회 누적', icon: '🌙', type: 'once', premium: true },
-    { id: 'weekend', title: '주말 전사', desc: '토,일 둘 다 운동', icon: '🎉', type: 'repeat', premium: true },
-    { id: 'mondayKiller', title: '월요병 극복', desc: '월요일 4주 연속 운동', icon: '💪', type: 'repeat', premium: true },
-    { id: 'fridayFighter', title: '불금도 운동', desc: '금요일 4주 연속 운동', icon: '🔥', type: 'repeat', premium: true },
+    { id: 'earlyBird', icon: '🌅', type: 'repeat', premium: true },
+    { id: 'nightOwl', icon: '🦉', type: 'repeat', premium: true },
+    { id: 'earlyBird10', icon: '☀️', type: 'once', premium: true },
+    { id: 'nightOwl10', icon: '🌙', type: 'once', premium: true },
+    { id: 'weekend', icon: '🎉', type: 'repeat', premium: true },
+    { id: 'mondayKiller', icon: '💪', type: 'repeat', premium: true },
+    { id: 'fridayFighter', icon: '🔥', type: 'repeat', premium: true },
 
     // 12. 특별 이벤트 (8개) - 전부 프리미엄
-    { id: 'newYear', title: '새해 결심', desc: '1월 1일 운동', icon: '🎆', type: 'repeat', premium: true },
-    { id: 'valentine', title: '발렌타인 운동', desc: '2월 14일 운동', icon: '💝', type: 'repeat', premium: true },
-    { id: 'leapDay', title: '윤년 운동', desc: '2월 29일 운동', icon: '🐸', type: 'repeat', premium: true },
-    { id: 'christmas', title: '크리스마스 머슬', desc: '12월 25일 운동', icon: '🎄', type: 'repeat', premium: true },
-    { id: 'summer', title: '썸머 바디', desc: '7,8월 총 20일 이상', icon: '🏖️', type: 'repeat', premium: true },
-    { id: 'winter', title: '겨울 전사', desc: '12,1,2월 총 30일 이상', icon: '❄️', type: 'repeat', premium: true },
-    { id: 'yearEnd', title: '연말 스퍼트', desc: '12월 27~31일 중 3일 운동', icon: '🎇', type: 'repeat', premium: true },
-    { id: 'newYearWeek', title: '새해 첫 주', desc: '1월 첫 주 3일 이상', icon: '🌟', type: 'repeat', premium: true },
+    { id: 'newYear', icon: '🎆', type: 'repeat', premium: true },
+    { id: 'valentine', icon: '💝', type: 'repeat', premium: true },
+    { id: 'leapDay', icon: '🐸', type: 'repeat', premium: true },
+    { id: 'christmas', icon: '🎄', type: 'repeat', premium: true },
+    { id: 'summer', icon: '🏖️', type: 'repeat', premium: true },
+    { id: 'winter', icon: '❄️', type: 'repeat', premium: true },
+    { id: 'yearEnd', icon: '🎇', type: 'repeat', premium: true },
+    { id: 'newYearWeek', icon: '🌟', type: 'repeat', premium: true },
 
     // 13. 복귀/회복 (5개)
-    { id: 'rest1week', title: '언제까지 회복?', desc: '1주일 기록 없음', icon: '😴', type: 'repeat', premium: false },
-    { id: 'rest1month', title: '지금은 휴가중', desc: '한 달 기록 없음', icon: '🏖️', type: 'repeat', premium: false },
-    { id: 'rest3month', title: '동면시간?', desc: '3달 기록 없음', icon: '🐻', type: 'repeat', premium: true },
-    { id: 'comeback', title: '다시 시작', desc: '7일+ 휴식 후 복귀', icon: '🔄', type: 'repeat', premium: true },
-    { id: 'phoenix', title: '불사조', desc: '30일+ 휴식 후 복귀 3회', icon: '🔥', type: 'once', premium: true },
+    { id: 'rest1week', icon: '😴', type: 'repeat', premium: false },
+    { id: 'rest1month', icon: '🏖️', type: 'repeat', premium: false },
+    { id: 'rest3month', icon: '🐻', type: 'repeat', premium: true },
+    { id: 'comeback', icon: '🔄', type: 'repeat', premium: true },
+    { id: 'phoenix', icon: '🔥', type: 'once', premium: true },
 
     // 14. 성장/PR (6개) - 전부 프리미엄
-    { id: 'prFirst', title: '첫 자기 기록', desc: '운동별 최고 무게 경신', icon: '🎯', type: 'once', premium: true },
-    { id: 'pr10', title: 'PR 헌터', desc: '자기 기록 10회 경신', icon: '🏹', type: 'once', premium: true },
-    { id: 'pr25', title: 'PR 마니아', desc: '자기 기록 25회 경신', icon: '🎯', type: 'once', premium: true },
-    { id: 'pr50', title: 'PR 마스터', desc: '자기 기록 50회 경신', icon: '⭐', type: 'once', premium: true },
-    { id: 'pr100', title: 'PR 레전드', desc: '자기 기록 100회 경신', icon: '💎', type: 'once', premium: true },
-    { id: 'doubleUp', title: '더블업', desc: '첫 기록 대비 무게 2배', icon: '🔥', type: 'repeat', premium: true },
+    { id: 'prFirst', icon: '🎯', type: 'once', premium: true },
+    { id: 'pr10', icon: '🏹', type: 'once', premium: true },
+    { id: 'pr25', icon: '🎯', type: 'once', premium: true },
+    { id: 'pr50', icon: '⭐', type: 'once', premium: true },
+    { id: 'pr100', icon: '💎', type: 'once', premium: true },
+    { id: 'doubleUp', icon: '🔥', type: 'repeat', premium: true },
 
     // 15. 하드코어 도전 (6개) - 전부 프리미엄
-    { id: 'perfectWeek', title: '완벽한 한 주', desc: '7일 연속 운동', icon: '⭐', type: 'repeat', premium: true },
-    { id: 'perfectMonth', title: '완벽한 한 달', desc: '한 달간 매일 운동', icon: '🌟', type: 'repeat', premium: true },
-    { id: 'spartan', title: '스파르탄', desc: '12주 연속 주 4일 이상', icon: '⚔️', type: 'repeat', premium: true },
-    { id: 'marathon', title: '마라토너', desc: '6개월간 주 3일 이상', icon: '🏃', type: 'once', premium: true },
-    { id: 'ultraMarathon', title: '울트라 마라톤', desc: '1년간 주 3일 이상', icon: '🏅', type: 'once', premium: true },
-    { id: 'noExcuse', title: '핑계는 없다', desc: '3개월간 주 5일 이상', icon: '🦁', type: 'once', premium: true },
+    { id: 'perfectWeek', icon: '⭐', type: 'repeat', premium: true },
+    { id: 'perfectMonth', icon: '🌟', type: 'repeat', premium: true },
+    { id: 'spartan', icon: '⚔️', type: 'repeat', premium: true },
+    { id: 'marathon', icon: '🏃', type: 'once', premium: true },
+    { id: 'ultraMarathon', icon: '🏅', type: 'once', premium: true },
+    { id: 'noExcuse', icon: '🦁', type: 'once', premium: true },
 ];
 
 if (!data.achievements) data.achievements = {};
@@ -694,15 +695,15 @@ function renderAchievements() {
     document.getElementById('achievementSummary').innerHTML = `
         <div class="achievement-stat">
             <div class="achievement-stat-value">${achievedCount}/${totalAchievements}</div>
-            <div class="achievement-stat-label">달성 업적</div>
+            <div class="achievement-stat-label">${t('achievedCount')}</div>
         </div>
         <div class="achievement-stat">
             <div class="achievement-stat-value">${totalCount}</div>
-            <div class="achievement-stat-label">총 달성 횟수</div>
+            <div class="achievement-stat-label">${t('totalAchievements')}</div>
         </div>
         <div class="achievement-stat">
             <div class="achievement-stat-value">${allDates.length}</div>
-            <div class="achievement-stat-label">총 기록일</div>
+            <div class="achievement-stat-label">${t('totalRecordDays')}</div>
         </div>
     `;
 
@@ -710,6 +711,7 @@ function renderAchievements() {
         const d = data.achievements[a.id];
         const premiumLock = !isPremium && a.premium;
         const locked = isLocked || premiumLock;
+        const achText = getAchievementText(a.id);
 
         // 상태 표시: 달성 / 미달성 / 프리미엄 잠금
         let statusHtml = '';
@@ -723,14 +725,14 @@ function renderAchievements() {
             statusHtml = '<span class="achievement-lock">🔒</span>';
         } else {
             // 미달성 (라이트)
-            statusHtml = '<span class="achievement-pending">도전</span>';
+            statusHtml = `<span class="achievement-pending">${t('challenge')}</span>`;
         }
 
         return `<div class="achievement-item${locked ? ' locked' : ''}${premiumLock ? ' premium-locked' : ''}">
             <div class="achievement-icon">${a.icon}</div>
             <div class="achievement-info">
-                <div class="achievement-title">${a.title}${premiumLock ? ' <span class="premium-badge">PRO</span>' : ''}</div>
-                <div class="achievement-desc">${a.desc}</div>
+                <div class="achievement-title">${achText.title}${premiumLock ? ' <span class="premium-badge">PRO</span>' : ''}</div>
+                <div class="achievement-desc">${achText.desc}</div>
             </div>
             ${statusHtml}
         </div>`;
@@ -755,14 +757,14 @@ function renderAchievements() {
         html += lockedPremium.map(a => renderItem(a, true)).join('');
     } else {
         // 프리미엄 미션 미리보기 (잠금 상태)
-        html += `<div class="premium-section-header" onclick="showUpgradePrompt('프리미엄 업적')">
-            <span>프리미엄 업적</span>
-            <span class="premium-count">${premiumAchievements.length}개</span>
+        html += `<div class="premium-section-header" onclick="showUpgradePrompt('${t('premiumAchievements')}')">
+            <span>${t('premiumAchievements')}</span>
+            <span class="premium-count">${premiumAchievements.length}</span>
         </div>`;
         html += premiumAchievements.slice(0, 5).map(a => renderItem(a, true)).join('');
         if (premiumAchievements.length > 5) {
-            html += `<div class="premium-more" onclick="showUpgradePrompt('프리미엄 업적')">
-                +${premiumAchievements.length - 5}개 더 보기
+            html += `<div class="premium-more" onclick="showUpgradePrompt('${t('premiumAchievements')}')">
+                ${t('moreAchievements', premiumAchievements.length - 5)}
             </div>`;
         }
     }
