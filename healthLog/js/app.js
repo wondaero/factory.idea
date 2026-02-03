@@ -158,3 +158,8 @@ document.getElementById('backBtn').onclick = () => history.back();
 
 if (!location.hash) navigate('record', true);
 handleRoute();
+
+// 첫 로드 시 달력뷰면 오늘 패널 표시
+if (getHash() === 'record' && currentViewMode === 'calendar') {
+    showDayDetail(today);
+}

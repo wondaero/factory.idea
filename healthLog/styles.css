@@ -1097,6 +1097,72 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
     color: #34c759;
     font-size: 20px;
 }
+.achievement-pending {
+    font-size: 11px;
+    color: #666;
+    background: #e8e8ed;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+.achievement-lock {
+    font-size: 16px;
+    opacity: 0.6;
+}
+
+/* 프리미엄 업적 스타일 */
+.achievement-item.premium-locked {
+    opacity: 0.6;
+}
+.achievement-item.premium-locked .achievement-icon {
+    filter: grayscale(0.5);
+}
+.premium-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #ffd700, #ffb300);
+    color: #000;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 5px;
+    border-radius: 4px;
+    margin-left: 4px;
+    vertical-align: middle;
+}
+.premium-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    margin-top: 16px;
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    color: #ffd700;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 600;
+}
+.premium-section-header:active {
+    opacity: 0.9;
+}
+.premium-count {
+    background: rgba(255, 215, 0, 0.2);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 13px;
+}
+.premium-more {
+    text-align: center;
+    padding: 16px;
+    color: #ffd700;
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    border-radius: 12px;
+    margin-top: 8px;
+    cursor: pointer;
+    font-weight: 500;
+}
+.premium-more:active {
+    opacity: 0.9;
+}
 
 /* 반응형 - 280px까지 지원 */
 @media (max-width: 360px) {

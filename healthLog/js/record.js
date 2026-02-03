@@ -360,9 +360,7 @@ $('todayBtn').onclick = () => {
     const now = new Date();
     calendarYear = now.getFullYear();
     calendarMonth = now.getMonth();
-    selectedDate = today;
-    dayDetail.classList.add('hidden');
-    renderCalendar();
+    showDayDetail(today);
 };
 
 calendarDays.onclick = e => {
