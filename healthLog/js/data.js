@@ -225,10 +225,12 @@ function loadDummyData() {
     return { exercises, records, achievements: {} };
 }
 
-// 더미 데이터 로드 (DUMMY_MODE가 true이고 데이터가 비어있을 때)
-if (DUMMY_MODE && data.exercises.length === 0) {
+// 더미 데이터 로드 (DUMMY_MODE가 true일 때 강제 로드)
+if (DUMMY_MODE) {
     data = loadDummyData();
-    console.log('더미 데이터 로드됨 (3개월치)');
+    isPremium = true; // 프리미엄 강제 설정
+    save();
+    console.log('더미 데이터 강제 로드됨 (3개월치, 프리미엄)');
 }
 
 function save() {

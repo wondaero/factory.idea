@@ -255,10 +255,14 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
 /* Color Picker Modal */
 .color-picker-content {
     padding: 20px;
+    max-width: 400px;
 }
 .color-picker-content .color-picker-grid {
     padding: 10px;
     gap: 12px;
+}
+.color-picker-grid .color-option {
+    min-width: 0;
 }
 /* Year scroll selector */
 .month-picker-content {
