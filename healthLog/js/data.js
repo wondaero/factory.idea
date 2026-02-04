@@ -124,7 +124,7 @@ let data = migrateData(stored);
 let exerciseSortOrder = stored.exerciseSortOrder || 'registered';
 
 // ==================== 더미 데이터 (테스트용 - 나중에 삭제) ====================
-const DUMMY_MODE = true; // false로 바꾸면 더미 데이터 비활성화
+const DUMMY_MODE = false; // false로 바꾸면 더미 데이터 비활성화
 
 function loadDummyData() {
     const exercises = [

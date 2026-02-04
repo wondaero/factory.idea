@@ -177,3 +177,73 @@ handleRoute();
 if (getHash() === 'record' && currentViewMode === 'calendar') {
     showDayDetail(today);
 }
+
+// ==================== 이스터에그: 프리미엄 전환 ====================
+// "Health Log" 타이틀을 7번 연속 탭하면 프리미엄 전환
+(function initEasterEgg() {
+    const title = document.querySelector('#recordTab header h1');
+    if (!title) return;
+
+    let tapCount = 0;
+    let lastTap = 0;
+    const TAP_THRESHOLD = 2000; // 2초 내에 7번
+    const TAP_COUNT = 7;
+
+    title.addEventListener('click', () => {
+        const now = Date.now();
+        if (now - lastTap > TAP_THRESHOLD) {
+            tapCount = 0;
+        }
+        lastTap = now;
+        tapCount++;
+
+        if (tapCount >= TAP_COUNT) {
+            tapCount = 0;
+            const newState = togglePremium();
+            showEasterEggToast(newState ? '🎉 Premium Activated!' : '📦 Lite Mode');
+        }
+    });
+
+    function showEasterEggToast(message) {
+        const existing = document.querySelector('.easter-egg-toast');
+        if (existing) existing.remove();
+
+        const toast = document.createElement('div');
+        toast.className = 'easter-egg-toast';
+        toast.textContent = message;
+        toast.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.85);
+            color: #fff;
+            padding: 20px 40px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            z-index: 9999;
+            animation: easterEggPop 0.3s ease-out;
+        `;
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transition = 'opacity 0.3s';
+            setTimeout(() => toast.remove(), 300);
+        }, 1500);
+    }
+
+    // 애니메이션 스타일 추가
+    if (!document.getElementById('easterEggStyle')) {
+        const style = document.createElement('style');
+        style.id = 'easterEggStyle';
+        style.textContent = `
+            @keyframes easterEggPop {
+                0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+                100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+})();
