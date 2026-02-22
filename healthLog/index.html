@@ -13,7 +13,6 @@
             <div id="mainPage">
                 <header>
                     <h1>Health Log</h1>
-                    <button class="lang-toggle-btn" id="langToggleBtn" onclick="toggleLanguage()">EN</button>
                     <div class="view-toggle">
                         <button id="calendarViewBtn" class="active">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -42,7 +41,7 @@
                         <div class="calendar-header">
                             <button class="calendar-title-btn" id="calendarTitleBtn">2024년 1월</button>
                             <div class="calendar-nav">
-                                <button class="today-btn" id="todayBtn">today</button>
+                                <button class="today-btn" id="todayBtn" data-i18n="today">오늘</button>
                                 <button id="prevMonth">‹</button>
                                 <button id="nextMonth">›</button>
                             </div>
@@ -154,6 +153,56 @@
             <div class="achievement-list" id="achievementList"></div>
         </div>
 
+        <!-- Menu Tab -->
+        <div id="menuTab" class="hidden">
+            <header><h1 data-i18n="tabMenu">설정</h1></header>
+            <div class="menu-list">
+                <div class="menu-section">
+                    <h3 class="menu-section-title" data-i18n="language">언어</h3>
+                    <div class="language-selector">
+                        <button class="lang-btn" data-lang="ko">한국어</button>
+                        <button class="lang-btn" data-lang="en">English</button>
+                    </div>
+                </div>
+                <div class="menu-section">
+                    <h3 class="menu-section-title" data-i18n="weightUnitLabel">무게 단위</h3>
+                    <div class="unit-selector">
+                        <button class="unit-btn" data-unit="kg">kg</button>
+                        <button class="unit-btn" data-unit="lb">lb</button>
+                    </div>
+                </div>
+                <div class="menu-section">
+                    <h3 class="menu-section-title" data-i18n="dataManagement">데이터 관리</h3>
+                    <button class="menu-item" id="loadDataBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        <span data-i18n="loadData">데이터 불러오기</span>
+                    </button>
+                    <button class="menu-item" id="exportDataBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        <span data-i18n="exportData">데이터 내보내기</span>
+                    </button>
+                    <button class="menu-item menu-item-danger" id="resetDataBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            <line x1="10" y1="11" x2="10" y2="17"/>
+                            <line x1="14" y1="11" x2="14" y2="17"/>
+                        </svg>
+                        <span data-i18n="resetData">데이터 초기화</span>
+                    </button>
+                </div>
+            </div>
+            <input type="file" id="fileInput" accept=".hlog,.json,application/json,application/octet-stream,*/*" class="hidden">
+        </div>
+
         <!-- Settings Tab -->
         <div id="settingsTab" class="hidden">
             <header>
@@ -252,6 +301,17 @@
         </div>
     </div>
 
+    <!-- Custom Alert/Confirm Modal -->
+    <div class="modal-overlay" id="customModal">
+        <div class="modal-content custom-modal-content">
+            <div class="custom-modal-body">
+                <div class="custom-modal-icon" id="customModalIcon"></div>
+                <div class="custom-modal-message" id="customModalMessage"></div>
+            </div>
+            <div class="custom-modal-actions" id="customModalActions"></div>
+        </div>
+    </div>
+
     <!-- Custom Date Modal -->
     <div class="modal-overlay" id="customDateModal">
         <div class="modal-content">
@@ -310,11 +370,19 @@
                 <rect x="5" y="13" width="4" height="6" rx="1" transform="rotate(-45 7 16)"/>
                 <rect x="15" y="5" width="4" height="6" rx="1" transform="rotate(-45 17 8)"/>
             </svg>
-            <span data-i18n="tabSettings">운동 설정</span>
+            <span data-i18n="tabSettings">운동</span>
+        </button>
+        <button class="tab-item" data-tab="menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            <span data-i18n="tabMenu">설정</span>
         </button>
     </nav>
 
     <!-- JS 모듈 (순서 중요) -->
+    <script src="js/storage.js"></script>
     <script src="js/data.js"></script>
     <script src="js/i18n.js"></script>
     <script src="js/record.js"></script>

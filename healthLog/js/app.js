@@ -1,3 +1,86 @@
+// ==================== Custom Modal System ====================
+
+const customModal = document.getElementById('customModal');
+const customModalIcon = document.getElementById('customModalIcon');
+const customModalMessage = document.getElementById('customModalMessage');
+const customModalActions = document.getElementById('customModalActions');
+
+const MODAL_ICONS = {
+    success: '✓',
+    error: '✕',
+    warning: '⚠',
+    info: 'ℹ',
+    confirm: '?',
+    exit: '👋'
+};
+
+function showModal(options) {
+    return new Promise((resolve) => {
+        const { type = 'info', message, buttons = [{ text: t('confirm') || '확인', primary: true }] } = options;
+
+        customModalIcon.textContent = MODAL_ICONS[type] || MODAL_ICONS.info;
+        customModalIcon.className = 'custom-modal-icon ' + type;
+        customModalMessage.textContent = message;
+
+        customModalActions.innerHTML = '';
+        buttons.forEach((btn, idx) => {
+            const button = document.createElement('button');
+            button.textContent = btn.text;
+            if (btn.danger) {
+                button.className = 'modal-btn-danger';
+            } else if (btn.primary) {
+                button.className = 'modal-btn-primary';
+            } else {
+                button.className = 'modal-btn-secondary';
+            }
+            button.onclick = () => {
+                customModal.classList.remove('show');
+                resolve(btn.value !== undefined ? btn.value : idx === 0);
+            };
+            customModalActions.appendChild(button);
+        });
+
+        customModal.classList.add('show');
+    });
+}
+
+function showAlert(message, type = 'info') {
+    return showModal({
+        type,
+        message,
+        buttons: [{ text: t('confirm') || '확인', primary: true, value: true }]
+    });
+}
+
+function showConfirm(message, type = 'confirm') {
+    return showModal({
+        type,
+        message,
+        buttons: [
+            { text: t('cancel') || '취소', value: false },
+            { text: t('confirm') || '확인', primary: true, value: true }
+        ]
+    });
+}
+
+function showExitConfirm() {
+    return showModal({
+        type: 'exit',
+        message: t('exitConfirm') || '앱을 종료하시겠습니까?',
+        buttons: [
+            { text: t('cancel') || '취소', value: false },
+            { text: t('exit') || '종료', danger: true, value: true }
+        ]
+    });
+}
+
+// Close modal on overlay click
+customModal.onclick = (e) => {
+    if (e.target === customModal) {
+        customModal.classList.remove('show');
+    }
+};
+
 // ==================== 라우팅 & 초기화 ====================
 
 let isNavigating = false;
@@ -27,6 +110,14 @@ function handleRoute() {
     dayDetail.classList.add('hidden');
     monthPickerModal.classList.remove('show');
     addExercisePage.classList.add('hidden');
+
+    // 제목/메모 수정 중이면 취소
+    if (typeof cancelTitleEdit === 'function') {
+        cancelTitleEdit();
+    }
+    if (typeof cancelMemoEdit === 'function') {
+        cancelMemoEdit();
+    }
 
     if (route === 'detail' && parts[1]) {
         const exerciseIdOrName = decodeURIComponent(parts[1]);
@@ -104,6 +195,10 @@ function handleRoute() {
         }
 
         renderMain();
+    } else if (route === 'menu') {
+        Object.values(tabs).forEach(t => t.classList.add('hidden'));
+        tabs.menu.classList.remove('hidden');
+        tabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === 'menu'));
     } else {
         // record (기본)
         Object.values(tabs).forEach(t => t.classList.add('hidden'));
@@ -170,13 +265,37 @@ document.getElementById('settingsBackBtn').onclick = () => history.back();
 
 // ==================== 초기화 ====================
 
-if (!location.hash) navigate('record', true);
-handleRoute();
+// 앱 초기화 (데이터 로드 후 실행)
+async function initApp() {
+    // 네이티브 앱 감지 (CSS 분기용)
+    if (window.Capacitor?.isNativePlatform?.()) {
+        document.body.classList.add('is-native');
+    }
 
-// 첫 로드 시 달력뷰면 오늘 패널 표시
-if (getHash() === 'record' && currentViewMode === 'calendar') {
-    showDayDetail(today);
+    // 데이터 로드 대기
+    await initData();
+
+    // 초기 라우팅
+    if (!location.hash) navigate('record', true);
+    handleRoute();
+
+    // 첫 로드 시 달력뷰면 오늘 패널 표시
+    if (getHash() === 'record' && currentViewMode === 'calendar') {
+        showDayDetail(today);
+    }
+
+    // UI 초기화
+    updateLangButtons();
+    updateUnitButtons();
+
+    // 뒤로가기 핸들러 등록 (Capacitor 플러그인 로드 후)
+    initBackButtonHandler();
+
+    console.log('App initialized');
 }
+
+// 앱 시작
+initApp();
 
 // ==================== 이스터에그: 프리미엄 전환 ====================
 // "Health Log" 타이틀을 7번 연속 탭하면 프리미엄 전환
@@ -247,3 +366,347 @@ if (getHash() === 'record' && currentViewMode === 'calendar') {
         document.head.appendChild(style);
     }
 })();
+
+// ==================== 데이터 내보내기/불러오기 (.hlog + gzip) ====================
+
+const fileInput = document.getElementById('fileInput');
+const loadDataBtn = document.getElementById('loadDataBtn');
+const exportDataBtn = document.getElementById('exportDataBtn');
+
+// gzip 압축
+async function compressData(jsonStr) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(jsonStr);
+    const cs = new CompressionStream('gzip');
+    const writer = cs.writable.getWriter();
+    writer.write(data);
+    writer.close();
+    const compressedChunks = [];
+    const reader = cs.readable.getReader();
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        compressedChunks.push(value);
+    }
+    const totalLength = compressedChunks.reduce((acc, chunk) => acc + chunk.length, 0);
+    const result = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const chunk of compressedChunks) {
+        result.set(chunk, offset);
+        offset += chunk.length;
+    }
+    return result;
+}
+
+// gzip 해제
+async function decompressData(compressedData) {
+    const ds = new DecompressionStream('gzip');
+    const writer = ds.writable.getWriter();
+    writer.write(compressedData);
+    writer.close();
+    const decompressedChunks = [];
+    const reader = ds.readable.getReader();
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        decompressedChunks.push(value);
+    }
+    const totalLength = decompressedChunks.reduce((acc, chunk) => acc + chunk.length, 0);
+    const result = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const chunk of decompressedChunks) {
+        result.set(chunk, offset);
+        offset += chunk.length;
+    }
+    const decoder = new TextDecoder();
+    return decoder.decode(result);
+}
+
+// 데이터 내보내기 (.hlog)
+async function exportData() {
+    try {
+        const exportObj = {
+            ...data,
+            isPremium,
+            exerciseSortOrder,
+            weightUnit,
+            exportedAt: new Date().toISOString()
+        };
+        const jsonStr = JSON.stringify(exportObj);
+        const compressed = await compressData(jsonStr);
+        const fileName = `healthlog_${today}.hlog`;
+
+        // 네이티브 앱에서는 Share 사용 (경로 선택 가능)
+        if (window.Capacitor?.isNativePlatform?.() && window.Capacitor?.Plugins?.Filesystem) {
+            const Filesystem = window.Capacitor.Plugins.Filesystem;
+            const Share = window.Capacitor.Plugins.Share;
+
+            // base64로 변환
+            const base64 = btoa(String.fromCharCode(...compressed));
+
+            // 캐시 폴더에 임시 저장 후 공유
+            await Filesystem.writeFile({
+                path: fileName,
+                data: base64,
+                directory: 'CACHE'
+            });
+
+            // 파일 URI 가져오기
+            const fileUri = await Filesystem.getUri({
+                path: fileName,
+                directory: 'CACHE'
+            });
+
+            // Share 플러그인으로 공유 (사용자가 저장 위치 선택 가능)
+            if (Share) {
+                await Share.share({
+                    title: t('exportData') || '데이터 내보내기',
+                    text: t('exportShareText') || 'Health Log 백업 파일',
+                    url: fileUri.uri,
+                    dialogTitle: t('exportChooseLocation') || '저장 위치 선택'
+                });
+            } else {
+                // Share 플러그인 없으면 Documents에 저장
+                await Filesystem.writeFile({
+                    path: fileName,
+                    data: base64,
+                    directory: 'DOCUMENTS'
+                });
+                await showAlert(
+                    (t('exportSuccessPath') || '파일이 저장되었습니다:\n{path}').replace('{path}', `Documents/${fileName}`),
+                    'success'
+                );
+            }
+        } else {
+            // 웹에서는 기존 다운로드 방식
+            const blob = new Blob([compressed], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            await showAlert(t('exportSuccess') || '데이터를 내보냈습니다.', 'success');
+        }
+    } catch (err) {
+        console.error('내보내기 오류:', err);
+        await showAlert(t('exportError') || '내보내기 중 오류가 발생했습니다.', 'error');
+    }
+}
+
+// 데이터 불러오기 (.hlog 또는 .json)
+async function loadData(file) {
+    try {
+        let jsonStr;
+
+        if (file.name.endsWith('.hlog')) {
+            // gzip 압축 해제
+            const arrayBuffer = await file.arrayBuffer();
+            const compressedData = new Uint8Array(arrayBuffer);
+            jsonStr = await decompressData(compressedData);
+        } else {
+            // 일반 JSON
+            jsonStr = await file.text();
+        }
+
+        const loaded = JSON.parse(jsonStr);
+
+        // 유효성 검사
+        if (!loaded.exercises || !loaded.records) {
+            await showAlert(t('invalidFileFormat') || '올바른 데이터 파일이 아닙니다.', 'error');
+            return;
+        }
+
+        // 데이터 마이그레이션
+        const migrated = migrateData(loaded);
+
+        // 확인 메시지
+        const exerciseCount = migrated.exercises.length;
+        const recordCount = migrated.records.length;
+        const confirmMsg = (t('confirmLoad') || '운동 {exercises}개, 기록 {records}개를 불러옵니다.\n기존 데이터가 덮어씌워집니다. 계속하시겠습니까?')
+            .replace('{exercises}', exerciseCount)
+            .replace('{records}', recordCount);
+
+        const confirmed = await showConfirm(confirmMsg, 'warning');
+        if (!confirmed) return;
+
+        // 데이터 적용
+        data.exercises = migrated.exercises;
+        data.records = migrated.records;
+        data.achievements = migrated.achievements || {};
+        if (loaded.isPremium !== undefined) isPremium = loaded.isPremium;
+        if (loaded.exerciseSortOrder) exerciseSortOrder = loaded.exerciseSortOrder;
+        if (loaded.weightUnit) weightUnit = loaded.weightUnit;
+
+        save();
+        invalidateRecordsCache();
+
+        // UI 새로고침
+        await showAlert(t('loadSuccess') || '데이터를 불러왔습니다.', 'success');
+        location.reload();
+    } catch (err) {
+        console.error('파일 로드 오류:', err);
+        await showAlert(t('loadError') || '파일을 읽는 중 오류가 발생했습니다.', 'error');
+    }
+}
+
+// 이벤트 리스너
+if (loadDataBtn) {
+    loadDataBtn.onclick = () => fileInput.click();
+}
+
+if (exportDataBtn) {
+    exportDataBtn.onclick = exportData;
+}
+
+if (fileInput) {
+    fileInput.onchange = (e) => {
+        if (e.target.files[0]) {
+            loadData(e.target.files[0]);
+            e.target.value = ''; // 같은 파일 다시 선택 가능하도록
+        }
+    };
+}
+
+// 데이터 초기화
+const resetDataBtn = document.getElementById('resetDataBtn');
+if (resetDataBtn) {
+    resetDataBtn.onclick = async () => {
+        const confirmed = await showConfirm(t('resetDataConfirm'));
+        if (confirmed) {
+            resetAllData();
+            renderExerciseList();
+            renderCalendar();
+            showDayDetail(today);
+            showAlert(t('resetDataSuccess'), 'success');
+        }
+    };
+}
+
+// ==================== 언어 선택 ====================
+
+function updateLangButtons() {
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.lang === currentLang);
+    });
+}
+
+document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.onclick = () => {
+        setLanguage(btn.dataset.lang);
+        updateLangButtons();
+    };
+});
+
+// ==================== 무게 단위 선택 ====================
+
+function updateUnitButtons() {
+    document.querySelectorAll('.unit-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.unit === weightUnit);
+    });
+}
+
+document.querySelectorAll('.unit-btn').forEach(btn => {
+    btn.onclick = () => {
+        setWeightUnit(btn.dataset.unit);
+        updateUnitButtons();
+        // Refresh displays
+        if (currentViewMode === 'calendar') {
+            renderCalendar();
+            if (selectedDate) showDayDetail(selectedDate);
+        } else {
+            renderFeedView();
+        }
+        if (currentExercise) renderDetail(isFromCalendar ? dateInput.value : null);
+    };
+});
+
+// ==================== 뒤로가기 종료 확인 ====================
+
+let isExitConfirmShowing = false;
+let backButtonHandlerRegistered = false;
+
+// 뒤로가기 버튼 핸들러 등록
+function registerBackButtonListener() {
+    if (backButtonHandlerRegistered) return;
+
+    const App = window.Capacitor?.Plugins?.App;
+    if (!App) {
+        console.log('App plugin not available');
+        return false;
+    }
+
+    App.addListener('backButton', async ({ canGoBack }) => {
+        console.log('Back button pressed, canGoBack:', canGoBack);
+
+        // 이미 종료 확인창이 떠있으면 무시
+        if (isExitConfirmShowing) return;
+
+        const currentHash = location.hash || '#record';
+
+        // 모달이 열려있으면 모달 닫기
+        if (customModal.classList.contains('show')) {
+            customModal.classList.remove('show');
+            return;
+        }
+        if (monthPickerModal.classList.contains('show')) {
+            monthPickerModal.classList.remove('show');
+            return;
+        }
+        if (colorPickerModal.classList.contains('show')) {
+            colorPickerModal.classList.remove('show');
+            return;
+        }
+        if (setEditModal.classList.contains('show')) {
+            setEditModal.classList.remove('show');
+            return;
+        }
+
+        // 메인 화면이 아니면 뒤로가기
+        if (currentHash !== '#record' && currentHash !== '') {
+            history.back();
+            return;
+        }
+
+        // 메인 화면에서 뒤로가기 = 종료 확인
+        isExitConfirmShowing = true;
+        const shouldExit = await showExitConfirm();
+        isExitConfirmShowing = false;
+
+        if (shouldExit) {
+            App.exitApp();
+        }
+    });
+
+    backButtonHandlerRegistered = true;
+    console.log('Back button handler registered successfully');
+    return true;
+}
+
+// Capacitor 네이티브 뒤로가기 버튼 처리 (Android)
+function initBackButtonHandler() {
+    // 바로 등록 시도
+    if (registerBackButtonListener()) return;
+
+    // Capacitor가 아직 준비되지 않았으면 대기
+    let attempts = 0;
+    const maxAttempts = 20; // 2초 동안 시도
+
+    const checkInterval = setInterval(() => {
+        attempts++;
+        console.log('Waiting for Capacitor App plugin... attempt', attempts);
+
+        if (registerBackButtonListener() || attempts >= maxAttempts) {
+            clearInterval(checkInterval);
+            if (attempts >= maxAttempts) {
+                console.log('App plugin not available after waiting');
+            }
+        }
+    }, 100);
+}
+
+// 뒤로가기 핸들러는 initApp()에서 등록

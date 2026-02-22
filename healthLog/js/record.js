@@ -62,7 +62,8 @@ const tabs = {
     record: $('recordTab'),
     chart: $('chartTab'),
     achievement: $('achievementTab'),
-    settings: $('settingsTab')
+    settings: $('settingsTab'),
+    menu: $('menuTab')
 };
 const tabButtons = document.querySelectorAll('.tab-item');
 const calendarViewBtn = $('calendarViewBtn');
@@ -120,7 +121,7 @@ function switchTab(tabName) {
     else if (tabName === 'settings') renderMain();
     else if (tabName === 'achievement') renderAchievements();
 }
-tabButtons.forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+// tabButtons click은 app.js에서 라우팅과 함께 처리
 
 // ==================== View Mode ====================
 function setViewMode(mode) {
@@ -258,7 +259,7 @@ function getExerciseColorsForDate(dateStr) {
 
     const colors = [];
     const seen = new Set();
-    for (let i = 0, len = dayRecords.length; i < len && colors.length < 4; i++) {
+    for (let i = 0, len = dayRecords.length; i < len; i++) {
         const exId = dayRecords[i].exerciseId;
         if (!seen.has(exId)) {
             seen.add(exId);
@@ -390,22 +391,23 @@ function goToSettingsForAdd() {
 
 $('dayAddBtn').onclick = () => goToSettingsForAdd();
 
-function deleteExerciseForDate(exerciseId, dateStr) {
+async function deleteExerciseForDate(exerciseId, dateStr) {
     const exercise = getExerciseById(exerciseId);
     const date = parseLocalDate(dateStr);
     const m = currentLang === 'ko' ? date.getMonth() + 1 : t('months')[date.getMonth()];
-    if (!confirm(t('deleteRecordConfirm', exercise?.name || 'Exercise', m, date.getDate()))) return;
+    const confirmed = await showConfirm(t('deleteRecordConfirm', exercise?.name || 'Exercise', m, date.getDate()), 'warning');
+    if (!confirmed) return;
     data.records = data.records.filter(r => !(r.exerciseId === exerciseId && r.datetime.slice(0, 10) === dateStr));
     save();
     showDayDetail(dateStr);
 }
 
-function clearAllForDate(dateStr) {
+async function clearAllForDate(dateStr) {
     const exercises = getExercisesForDate(dateStr);
     if (!exercises.length) { dayDetail.classList.add('hidden'); return; }
-    const date = parseLocalDate(dateStr);
     const label = dateStr === today ? t('today') : formatMonthDay(dateStr);
-    if (!confirm(t('deleteAllRecordsConfirm', label, exercises.map(e => e.name).join(', ')))) return;
+    const confirmed = await showConfirm(t('deleteAllRecordsConfirm', label, exercises.map(e => e.name).join(', ')), 'warning');
+    if (!confirmed) return;
     data.records = data.records.filter(r => r.datetime.slice(0, 10) !== dateStr);
     save();
     showDayDetail(dateStr);
@@ -485,7 +487,10 @@ function renderMain(searchQuery = '') {
     let filtered = data.exercises;
     if (searchQuery) {
         const q = searchQuery.toLowerCase();
-        filtered = data.exercises.filter(ex => ex.name.toLowerCase().includes(q));
+        filtered = data.exercises.filter(ex =>
+            ex.name.toLowerCase().includes(q) ||
+            (ex.memo && ex.memo.toLowerCase().includes(q))
+        );
     }
 
     let sorted = [...filtered];
@@ -610,11 +615,25 @@ function showDetailById(id, date = null) {
 
     if (exercise.memo) {
         exerciseMemoDisplay.textContent = exercise.memo;
+        exerciseMemoDisplay.classList.remove('hidden', 'placeholder');
+    } else {
+        exerciseMemoDisplay.textContent = t('addMemo');
         exerciseMemoDisplay.classList.remove('hidden');
-    } else exerciseMemoDisplay.classList.add('hidden');
+        exerciseMemoDisplay.classList.add('placeholder');
+    }
 
     dateInput.value = date || selectedDate || today;
-    weightInput.value = repsInput.value = setMemoInput.value = '';
+    setMemoInput.value = '';
+
+    // 이전 세트 값 가져오기 (해당 운동의 마지막 기록)
+    const exRecords = getRecordsByExerciseIndex()[id] || [];
+    const lastRecord = exRecords.length ? exRecords[exRecords.length - 1] : null;
+    if (lastRecord) {
+        weightInput.value = lastRecord.w;
+        repsInput.value = lastRecord.r;
+    } else {
+        weightInput.value = repsInput.value = '';
+    }
 
     if (date) {
         isHistoryVisible = true;
@@ -637,6 +656,15 @@ function showDetailById(id, date = null) {
 
     renderDetail(date);
     updateAddSetBtnColor();
+
+    // 운동 클릭 시 자동 포커스 (입력 폼이 보일 때만)
+    // 횟수에 포커스 + 전체 선택 (바로 덮어쓸 수 있게)
+    if (!date) {
+        setTimeout(() => {
+            repsInput.focus();
+            repsInput.select();
+        }, 100);
+    }
 }
 
 function showDetail(name, date = null) {
@@ -697,10 +725,10 @@ function closeAddExercisePage() {
     tabs.settings.classList.remove('hidden');
 }
 
-function addExercise() {
+async function addExercise() {
     const name = newExerciseNameInput.value.trim();
-    if (!name) { alert(t('enterExerciseName')); return; }
-    if (data.exercises.some(ex => ex.name === name)) { alert(t('exerciseExists')); return; }
+    if (!name) { await showAlert(t('enterExerciseName'), 'warning'); return; }
+    if (data.exercises.some(ex => ex.name === name)) { await showAlert(t('exerciseExists'), 'warning'); return; }
     if (!isPremium && data.exercises.length >= LITE_MAX_EXERCISES) {
         showUpgradePrompt(t('maxExercises', LITE_MAX_EXERCISES));
         return;
@@ -723,11 +751,12 @@ $('submitAddExercise').onclick = addExercise;
 newExerciseNameInput.onkeydown = e => { if (e.key === 'Enter') addExercise(); };
 exerciseSearchInput.oninput = e => renderMain(e.target.value);
 
-exerciseList.onclick = e => {
+exerciseList.onclick = async e => {
     if (e.target.classList.contains('delete-btn')) {
         const id = e.target.dataset.id;
         const ex = getExerciseById(id);
-        if (!confirm(t('deleteExerciseConfirm', ex?.name))) return;
+        const confirmed = await showConfirm(t('deleteExerciseConfirm', ex?.name), 'warning');
+        if (!confirmed) return;
         data.exercises = data.exercises.filter(ex => ex.id !== id);
         data.records = data.records.filter(r => r.exerciseId !== id);
         save();
@@ -739,24 +768,27 @@ exerciseList.onclick = e => {
     if (item) showDetailById(item.dataset.id);
 };
 
-$('backBtn').onclick = showMain;
+// backBtn onclick은 app.js에서 라우팅과 함께 처리
 
-// ==================== Title Edit ====================
+// ==================== Title & Color Edit ====================
 let editContainer = null;
+let editingExerciseColor = null;
 
 function startEditTitle() {
     if (editContainer) return;
     const exercise = getExerciseById(currentExercise);
     if (!exercise) return;
     const currentName = exercise.name;
+    editingExerciseColor = exercise.color || '#339af0';
     const header = detailTitle.parentElement;
 
     editContainer = document.createElement('div');
     editContainer.className = 'title-edit-container';
     editContainer.innerHTML = `
+        <button type="button" class="color-edit-btn" style="background:${editingExerciseColor}"></button>
         <input type="text" class="title-input" value="${currentName}">
         <div class="title-edit-btns">
-            <button class="title-save-btn">${t('edit')}</button>
+            <button class="title-save-btn">${t('save')}</button>
             <button class="title-cancel-btn">${t('cancel')}</button>
         </div>
     `;
@@ -766,40 +798,88 @@ function startEditTitle() {
     header.insertBefore(editContainer, detailTitle);
 
     const input = editContainer.querySelector('.title-input');
+    const colorBtn = editContainer.querySelector('.color-edit-btn');
     input.focus();
     input.select();
 
-    function finishEdit(shouldSave) {
+    // Color picker for editing
+    colorBtn.onclick = () => {
+        // Use the existing color picker modal
+        const colors = getAvailableColors();
+        colorPickerGrid.innerHTML = colors.map(c =>
+            `<div class="color-option${c === editingExerciseColor ? ' selected' : ''}" data-color="${c}" style="background:${c}"></div>`
+        ).join('') + (!isPremium ? `<div class="color-option premium-more" data-premium="true">+${PRESET_COLORS.length - LITE_COLORS.length}</div>` : '');
+
+        // Override click handler for edit mode
+        const originalHandler = colorPickerGrid.onclick;
+        colorPickerGrid.onclick = e => {
+            if (!e.target.classList.contains('color-option')) return;
+            if (e.target.dataset.premium === 'true') {
+                showUpgradePrompt(t('moreColors'));
+                return;
+            }
+            editingExerciseColor = e.target.dataset.color;
+            colorBtn.style.background = editingExerciseColor;
+            colorPickerGrid.querySelectorAll('.color-option').forEach(el =>
+                el.classList.toggle('selected', el.dataset.color === editingExerciseColor)
+            );
+            colorPickerModal.classList.remove('show');
+            // Restore original handler
+            colorPickerGrid.onclick = originalHandler;
+        };
+        colorPickerModal.classList.add('show');
+    };
+
+    async function finishEdit(shouldSave) {
         const newName = input.value.trim();
+        const newColor = editingExerciseColor;
         editContainer.remove();
         editContainer = null;
         detailTitle.style.display = '';
         editTitleBtn.style.display = '';
 
-        if (!shouldSave || !newName || newName === currentName) return;
+        if (!shouldSave) return;
+        if (!newName) return;
 
-        const existing = data.exercises.find(ex => ex.name === newName && ex.id !== currentExercise);
-        if (existing) {
-            if (confirm(t('mergeExerciseConfirm', newName))) {
-                data.records.forEach(r => { if (r.exerciseId === currentExercise) r.exerciseId = existing.id; });
-                data.exercises = data.exercises.filter(ex => ex.id !== currentExercise);
-                currentExercise = existing.id;
-                detailTitle.textContent = newName;
-                if (existing.memo) {
-                    exerciseMemoDisplay.textContent = existing.memo;
-                    exerciseMemoDisplay.classList.remove('hidden');
-                } else {
-                    exerciseMemoDisplay.classList.add('hidden');
+        // Check if only color changed
+        const colorChanged = newColor !== exercise.color;
+        const nameChanged = newName !== currentName;
+
+        if (!nameChanged && !colorChanged) return;
+
+        if (nameChanged) {
+            const existing = data.exercises.find(ex => ex.name === newName && ex.id !== currentExercise);
+            if (existing) {
+                const confirmed = await showConfirm(t('mergeExerciseConfirm', newName), 'warning');
+                if (confirmed) {
+                    data.records.forEach(r => { if (r.exerciseId === currentExercise) r.exerciseId = existing.id; });
+                    data.exercises = data.exercises.filter(ex => ex.id !== currentExercise);
+                    currentExercise = existing.id;
+                    detailTitle.textContent = newName;
+                    if (existing.memo) {
+                        exerciseMemoDisplay.textContent = existing.memo;
+                        exerciseMemoDisplay.classList.remove('hidden');
+                    } else {
+                        exerciseMemoDisplay.classList.add('hidden');
+                    }
+                    save();
+                    renderDetail();
+                    updateAddSetBtnColor();
                 }
-                save();
-                renderDetail();
-                updateAddSetBtnColor();
+                return;
             }
-        } else {
             exercise.name = newName;
             detailTitle.textContent = newName;
-            save();
         }
+
+        if (colorChanged) {
+            exercise.color = newColor;
+        }
+
+        save();
+        updateAddSetBtnColor();
+        renderMain();
+        currentViewMode === 'calendar' ? renderCalendar() : renderFeedView();
     }
 
     editContainer.querySelector('.title-save-btn').onclick = () => finishEdit(true);
@@ -812,6 +892,84 @@ function startEditTitle() {
 
 editTitleBtn.onclick = startEditTitle;
 detailTitle.onclick = startEditTitle;
+
+// 제목 수정 취소 (외부에서 호출 가능)
+function cancelTitleEdit() {
+    if (editContainer) {
+        editContainer.remove();
+        editContainer = null;
+        detailTitle.style.display = '';
+        editTitleBtn.style.display = '';
+        editingExerciseColor = null;
+    }
+}
+
+// ==================== 운동 메모 수정 ====================
+let memoEditContainer = null;
+
+function startEditMemo() {
+    if (memoEditContainer) return;
+    if (!currentExercise) return;
+
+    const exercise = getExerciseById(currentExercise);
+    if (!exercise) return;
+
+    memoEditContainer = document.createElement('div');
+    memoEditContainer.className = 'memo-edit-container';
+    memoEditContainer.innerHTML = `
+        <textarea class="memo-edit-input" placeholder="${t('enterExerciseDesc')}">${exercise.memo || ''}</textarea>
+        <div class="memo-edit-actions">
+            <button type="button" class="memo-cancel-btn">${t('cancel')}</button>
+            <button type="button" class="memo-save-btn">${t('save')}</button>
+        </div>
+    `;
+
+    exerciseMemoDisplay.style.display = 'none';
+    exerciseMemoDisplay.parentElement.insertBefore(memoEditContainer, exerciseMemoDisplay.nextSibling);
+
+    const textarea = memoEditContainer.querySelector('.memo-edit-input');
+    const saveBtn = memoEditContainer.querySelector('.memo-save-btn');
+    const cancelBtn = memoEditContainer.querySelector('.memo-cancel-btn');
+
+    textarea.focus();
+
+    const finishMemoEdit = (shouldSave) => {
+        const newMemo = textarea.value.trim();
+        memoEditContainer.remove();
+        memoEditContainer = null;
+        exerciseMemoDisplay.style.display = '';
+
+        if (shouldSave) {
+            exercise.memo = newMemo;
+            save();
+            if (newMemo) {
+                exerciseMemoDisplay.textContent = newMemo;
+                exerciseMemoDisplay.classList.remove('hidden');
+            } else {
+                exerciseMemoDisplay.textContent = t('addMemo');
+                exerciseMemoDisplay.classList.remove('hidden');
+                exerciseMemoDisplay.classList.add('placeholder');
+            }
+            renderMain();
+        }
+    };
+
+    saveBtn.onclick = () => finishMemoEdit(true);
+    cancelBtn.onclick = () => finishMemoEdit(false);
+    textarea.onkeydown = e => {
+        if (e.key === 'Escape') finishMemoEdit(false);
+    };
+}
+
+exerciseMemoDisplay.onclick = startEditMemo;
+
+function cancelMemoEdit() {
+    if (memoEditContainer) {
+        memoEditContainer.remove();
+        memoEditContainer = null;
+        exerciseMemoDisplay.style.display = '';
+    }
+}
 
 function updateAddSetBtnColor() {
     if (!currentExercise) return;
@@ -852,7 +1010,7 @@ function addSet() {
     const d = dateInput.value || today;
     const wRaw = sanitizeNumber(weightInput.value, true);
     const rRaw = sanitizeNumber(repsInput.value, false);
-    const w = wRaw === '' ? 0 : parseFloat(wRaw);
+    const w = wRaw === '' ? 1 : parseFloat(wRaw);  // 빈칸이면 1 (맨몸운동)
     const r = rRaw === '' ? 0 : parseInt(rRaw);
     const m = setMemoInput.value.trim();
 
@@ -869,8 +1027,19 @@ function addSet() {
     save();
     renderDetail(isFromCalendar ? dateInput.value : null);
     currentViewMode === 'calendar' ? renderCalendar() : renderFeedView();
-    weightInput.value = repsInput.value = setMemoInput.value = '';
-    weightInput.focus();
+
+    // 무게가 빈칸이어서 1로 자동 저장된 경우 input에도 1 표시
+    if (wRaw === '') {
+        weightInput.value = '1';
+    }
+
+    // 횟수는 유지 (방금 입력한 값), 메모만 초기화
+    repsInput.value = r;
+    setMemoInput.value = '';
+
+    // 횟수에 포커스 + 전체 선택 (바로 덮어쓰거나 그대로 추가 가능)
+    repsInput.focus();
+    repsInput.select();
 }
 
 addSetBtn.onclick = addSet;
@@ -879,7 +1048,7 @@ weightInput.onkeydown = repsInput.onkeydown = e => { if (e.key === 'Enter') addS
 addRecordToggleBtn.onclick = () => {
     inputFormArea.classList.remove('hidden');
     addRecordToggleBtn.classList.add('hidden');
-    weightInput.focus();
+    repsInput.focus();
 };
 
 historyToggleBtn.onclick = () => {
@@ -954,3 +1123,4 @@ $('saveSetEdit').onclick = saveEditSet;
 setEditModal.onclick = e => { if (e.target === setEditModal) closeEditSetModal(); };
 validateInput(editWeightInput, true);
 validateInput(editRepsInput, false);
+
