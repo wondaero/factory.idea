@@ -2,7 +2,14 @@
   "permissions": {
     "allow": [
       "Bash(curl:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(export JAVA_HOME=/opt/homebrew/opt/openjdk@21:*)",
+      "Bash(./gradlew assembleDebug)",
+      "Bash(npm install:*)",
+      "Bash(npx cap sync:*)",
+      "Bash(nvm list:*)",
+      "Bash(node --version:*)",
+      "Bash(nvm ls:*)"
     ]
   }
 }
