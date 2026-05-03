@@ -1,4 +1,4 @@
-const KEY = 'healthLog';
+const KEY = 'gyMemo';
 const today = new Date().toLocaleDateString('sv-SE');
 
 // 프리미엄 vs 라이트 설정

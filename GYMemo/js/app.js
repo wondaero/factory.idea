@@ -298,7 +298,7 @@ async function initApp() {
 initApp();
 
 // ==================== 이스터에그: 프리미엄 전환 ====================
-// "Health Log" 타이틀을 7번 연속 탭하면 프리미엄 전환
+// "GYMemo" 타이틀을 7번 연속 탭하면 프리미엄 전환
 (function initEasterEgg() {
     const title = document.querySelector('#recordTab header h1');
     if (!title) return;
@@ -434,7 +434,7 @@ async function exportData() {
         };
         const jsonStr = JSON.stringify(exportObj);
         const compressed = await compressData(jsonStr);
-        const fileName = `healthlog_${today}.hlog`;
+        const fileName = `gymemo_${today}.hlog`;
 
         // 네이티브 앱에서는 Share 사용 (경로 선택 가능)
         if (window.Capacitor?.isNativePlatform?.() && window.Capacitor?.Plugins?.Filesystem) {
@@ -461,7 +461,7 @@ async function exportData() {
             if (Share) {
                 await Share.share({
                     title: t('exportData') || '데이터 내보내기',
-                    text: t('exportShareText') || 'Health Log 백업 파일',
+                    text: t('exportShareText') || 'GYMemo 백업 파일',
                     url: fileUri.uri,
                     dialogTitle: t('exportChooseLocation') || '저장 위치 선택'
                 });

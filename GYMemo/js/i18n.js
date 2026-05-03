@@ -301,7 +301,7 @@ const TRANSLATIONS = {
         loadError: 'Error reading file.',
         exportSuccess: 'Data exported successfully.',
         exportSuccessPath: 'File saved:\n{path}',
-        exportShareText: 'Health Log backup file',
+        exportShareText: 'GYMemo backup file',
         exportChooseLocation: 'Choose save location',
         exportError: 'Error exporting data.',
         resetData: 'Reset Data',
@@ -533,7 +533,7 @@ const TRANSLATIONS = {
 };
 
 // 현재 언어 (localStorage에서 가져오거나 브라우저 언어 감지)
-let currentLang = localStorage.getItem('healthlog_lang') ||
+let currentLang = localStorage.getItem('gymemo_lang') ||
     (navigator.language.startsWith('ko') ? 'ko' : 'en');
 
 // 번역 함수
@@ -576,7 +576,7 @@ function getAchievementText(id) {
 function setLanguage(lang) {
     if (lang !== 'ko' && lang !== 'en') return;
     currentLang = lang;
-    localStorage.setItem('healthlog_lang', lang);
+    localStorage.setItem('gymemo_lang', lang);
     applyTranslations();
 }
 

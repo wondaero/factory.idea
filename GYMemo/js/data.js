@@ -1,6 +1,6 @@
 // ==================== 데이터 관리 ====================
 
-const KEY = 'healthLog';
+const KEY = 'gyMemo';
 const today = new Date().toLocaleDateString('sv-SE');
 
 // 프리미엄 vs 라이트 설정
@@ -30,7 +30,7 @@ const LITE_COLORS = [
 ];
 
 // 라이트 운동 개수 제한
-const LITE_MAX_EXERCISES = 8;
+const LITE_MAX_EXERCISES = 10;
 
 function getAvailableColors() {
     return isPremium ? PRESET_COLORS : LITE_COLORS;

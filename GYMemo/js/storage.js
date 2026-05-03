@@ -2,7 +2,7 @@
 // Capacitor Filesystem을 사용한 네이티브 파일 저장
 // 웹에서는 localStorage fallback
 
-const STORAGE_FILE = 'healthlog_data.json';
+const STORAGE_FILE = 'gymemo_data.json';
 let isNative = false;
 let Filesystem = null;
 let Directory = null;
@@ -59,7 +59,7 @@ async function readStorage() {
             }
             console.error('Storage read error:', e);
             // 파일 읽기 실패시 localStorage에서 마이그레이션 시도
-            const localData = localStorage.getItem('healthLog');
+            const localData = localStorage.getItem('gyMemo');
             if (localData) {
                 console.log('Storage: Migrating from localStorage');
                 const data = JSON.parse(localData);
@@ -70,7 +70,7 @@ async function readStorage() {
         }
     } else {
         // localStorage fallback
-        const data = localStorage.getItem('healthLog');
+        const data = localStorage.getItem('gyMemo');
         return data ? JSON.parse(data) : {};
     }
 }
@@ -91,12 +91,12 @@ async function writeStorage(data) {
         } catch (e) {
             console.error('Storage write error:', e);
             // 실패시 localStorage에도 백업
-            localStorage.setItem('healthLog', jsonStr);
+            localStorage.setItem('gyMemo', jsonStr);
             return false;
         }
     } else {
         // localStorage fallback
-        localStorage.setItem('healthLog', jsonStr);
+        localStorage.setItem('gyMemo', jsonStr);
         return true;
     }
 }
@@ -113,7 +113,7 @@ async function clearStorage() {
             console.log('Storage clear error:', e);
         }
     }
-    localStorage.removeItem('healthLog');
+    localStorage.removeItem('gyMemo');
 }
 
 // 저장소 정보

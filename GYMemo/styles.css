@@ -1069,6 +1069,32 @@ body.is-native .add-exercise-page {
     text-align: center;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
+.line-labels-month {
+    position: relative;
+    height: 28px;
+    margin-top: 4px;
+}
+.line-label-month {
+    position: absolute;
+    transform: translateX(-50%);
+    font-size: 11px;
+    color: #8e8e93;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.bar-label-month {
+    font-size: 11px;
+    color: #007aff;
+    font-weight: 600;
+    height: 25px;
+    line-height: 25px;
+    text-align: center;
+    white-space: nowrap;
+}
+.bar-label-empty {
+    height: 25px;
+    display: block;
+}
 
 /* Achievement */
 .achievement-summary {

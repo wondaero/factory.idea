@@ -105,6 +105,33 @@ function formatDateShort(dateStr) {
     return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
+function isLongPeriod() {
+    return ['3month', '6month', '1year', 'custom'].includes(currentChartPeriod);
+}
+
+// 장기간 차트용: 데이터 포인트 배열에서 월 라벨 위치 계산
+// [{date, index, total}] 형태로 각 월의 중앙 인덱스 반환
+function getMonthLabels(chartData) {
+    const labels = [];
+    let lastMonth = null;
+    const monthGroups = {};
+
+    for (let i = 0; i < chartData.length; i++) {
+        const ym = chartData[i].date.slice(0, 7);
+        if (!monthGroups[ym]) monthGroups[ym] = [];
+        monthGroups[ym].push(i);
+    }
+
+    for (const ym in monthGroups) {
+        const indices = monthGroups[ym];
+        const midIdx = indices[Math.floor(indices.length / 2)];
+        const [y, m] = ym.split('-');
+        labels.push({ label: `${parseInt(m)}월`, centerIdx: midIdx });
+    }
+
+    return labels;
+}
+
 function renderWeightChart(chartData) {
     if (!chartData.length) { weightChart.innerHTML = `<div class="empty">${t('noData')}</div>`; return; }
 
@@ -159,6 +186,22 @@ function renderWeightChart(chartData) {
         }
     }
 
+    let labelsHtml;
+    if (isLongPeriod()) {
+        const monthLabels = getMonthLabels(chartData);
+        labelsHtml = `<div class="line-labels-month">` +
+            monthLabels.map(({ label, centerIdx }) => {
+                const pct = pad + (centerIdx / (len - 1 || 1)) * (100 - pad * 2);
+                return `<span class="line-label-month" style="left:${pct}%">${label}</span>`;
+            }).join('') +
+            `</div>`;
+    } else {
+        labelsHtml = `<div class="line-labels">
+            <span class="line-label">${formatDateShort(chartData[0].date)}<br><strong>${chartData[0].maxWeight}kg</strong></span>
+            <span class="line-label">${formatDateShort(chartData[len - 1].date)}<br><strong>${chartData[len - 1].maxWeight}kg</strong></span>
+        </div>`;
+    }
+
     weightChart.innerHTML = `
         <div class="line-chart-inner">
             <svg viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -178,10 +221,7 @@ function renderWeightChart(chartData) {
             </svg>
             ${dots.join('')}
         </div>
-        <div class="line-labels">
-            <span class="line-label">${formatDateShort(chartData[0].date)}<br><strong>${chartData[0].maxWeight}kg</strong></span>
-            <span class="line-label">${formatDateShort(chartData[len - 1].date)}<br><strong>${chartData[len - 1].maxWeight}kg</strong></span>
-        </div>`;
+        ${labelsHtml}`;
 }
 
 function renderVolumeChart(chartData) {
@@ -194,6 +234,10 @@ function renderVolumeChart(chartData) {
     }
 
     const barH = 120;
+    const longPeriod = isLongPeriod();
+    const monthLabels = longPeriod ? getMonthLabels(chartData) : null;
+    const monthLabelSet = new Set(monthLabels ? monthLabels.map(l => l.centerIdx) : []);
+
     const html = [];
     for (let i = 0, len = chartData.length; i < len; i++) {
         const d = chartData[i];
@@ -202,7 +246,20 @@ function renderVolumeChart(chartData) {
         const isMin = d.totalVolume === minV && maxV !== minV;
         const valCls = isMax ? 'bar-value max' : isMin ? 'bar-value min' : 'bar-value';
         const val = d.totalVolume >= 1000 ? (d.totalVolume / 1000).toFixed(1) + 'k' : d.totalVolume;
-        html.push(`<div class="bar-item"><div class="bar-wrapper"><span class="${valCls}">${val}</span><div class="bar${isMax ? ' max' : ''}${isMin ? ' min' : ''}" style="height:${h}px"></div></div><span class="bar-label">${formatDateShort(d.date)}</span></div>`);
+
+        let labelHtml;
+        if (longPeriod) {
+            if (monthLabelSet.has(i)) {
+                const ml = monthLabels.find(l => l.centerIdx === i);
+                labelHtml = `<span class="bar-label bar-label-month">${ml.label}</span>`;
+            } else {
+                labelHtml = `<span class="bar-label bar-label-empty"></span>`;
+            }
+        } else {
+            labelHtml = `<span class="bar-label">${formatDateShort(d.date)}</span>`;
+        }
+
+        html.push(`<div class="bar-item"><div class="bar-wrapper"><span class="${valCls}">${val}</span><div class="bar${isMax ? ' max' : ''}${isMin ? ' min' : ''}" style="height:${h}px"></div></div>${labelHtml}</div>`);
     }
 
     volumeChart.innerHTML = html.join('');
