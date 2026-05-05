@@ -110,6 +110,7 @@ function handleRoute() {
     dayDetail.classList.add('hidden');
     monthPickerModal.classList.remove('show');
     addExercisePage.classList.add('hidden');
+    document.getElementById('addTemplatePage').classList.add('hidden');
 
     // 제목/메모 수정 중이면 취소
     if (typeof cancelTitleEdit === 'function') {
@@ -164,6 +165,7 @@ function handleRoute() {
 
             renderDetail(date);
             updateAddSetBtnColor();
+            updateFab(false);
         } else {
             isNavigating = false;
             navigate('record', true);
@@ -176,29 +178,20 @@ function handleRoute() {
         tabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === 'chart'));
         updateChartSelect();
         updateChartPeriodButtons();
-    } else if (route === 'achievement') {
+        updateFab(false);
+    } else if (route === 'my') {
+        const subroute = parts[1];
         Object.values(tabs).forEach(t => t.classList.add('hidden'));
-        tabs.achievement.classList.remove('hidden');
-        tabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === 'achievement'));
-        renderAchievements();
+        tabs.my.classList.remove('hidden');
+        tabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === 'my'));
+        showMySubpage(subroute || null);
     } else if (route === 'settings') {
-        const isAddMode = parts[1] === 'add';
         Object.values(tabs).forEach(t => t.classList.add('hidden'));
         tabs.settings.classList.remove('hidden');
         tabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === 'settings'));
-
-        const settingsBackBtn = document.getElementById('settingsBackBtn');
-        if (isAddMode) {
-            settingsBackBtn.classList.remove('hidden');
-        } else {
-            settingsBackBtn.classList.add('hidden');
-        }
-
+        document.getElementById('settingsBackBtn').classList.add('hidden');
         renderMain();
-    } else if (route === 'menu') {
-        Object.values(tabs).forEach(t => t.classList.add('hidden'));
-        tabs.menu.classList.remove('hidden');
-        tabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === 'menu'));
+        updateFab(true);
     } else {
         // record (기본)
         Object.values(tabs).forEach(t => t.classList.add('hidden'));
@@ -213,6 +206,7 @@ function handleRoute() {
         } else {
             renderFeedView();
         }
+        updateFab(false);
     }
     isNavigating = false;
 }
@@ -263,6 +257,79 @@ tabButtons.forEach(btn => {
 document.getElementById('backBtn').onclick = () => history.back();
 document.getElementById('settingsBackBtn').onclick = () => history.back();
 
+// ==================== 탭바 높이 측정 ====================
+
+function updateTabBarHeight() {
+    const tabBar = document.querySelector('.tab-bar');
+    if (tabBar) {
+        document.documentElement.style.setProperty('--tab-bar-h', tabBar.offsetHeight + 'px');
+    }
+}
+window.addEventListener('resize', updateTabBarHeight);
+
+// ==================== MY 서브페이지 ====================
+
+const mySubpages = {
+    profile: document.getElementById('myProfilePage'),
+    achievement: document.getElementById('myAchievementPage'),
+    appsettings: document.getElementById('myAppSettingsPage')
+};
+
+function showMySubpage(name) {
+    const hub = document.getElementById('myHub');
+    Object.values(mySubpages).forEach(p => p.classList.add('hidden'));
+
+    if (name && mySubpages[name]) {
+        hub.classList.add('hidden');
+        mySubpages[name].classList.remove('hidden');
+        if (name === 'achievement') renderAchievements();
+        if (name === 'profile') renderProfile();
+    } else {
+        hub.classList.remove('hidden');
+    }
+    updateFab(false);
+}
+
+document.querySelectorAll('.my-hub-item').forEach(btn => {
+    btn.onclick = () => { navigate('my/' + btn.dataset.subroute); handleRoute(); };
+});
+
+['mySubBackBtn', 'myAchBackBtn', 'mySettingsSubBackBtn'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.onclick = () => { navigate('my'); handleRoute(); };
+});
+
+// ==================== FAB ====================
+
+const fabAddExercise = document.getElementById('fabAddExercise');
+
+function updateFab(show) {
+    fabAddExercise.classList.toggle('hidden', !show);
+}
+
+fabAddExercise.onclick = () => {
+    const activeSubTab = document.querySelector('.sub-tab.active');
+    if (activeSubTab?.dataset.subtab === 'templates') {
+        openAddTemplatePage();
+    } else {
+        openAddExercisePage();
+    }
+};
+
+// ==================== 운동|템플릿 서브탭 ====================
+
+document.querySelectorAll('.sub-tab').forEach(btn => {
+    btn.onclick = () => {
+        document.querySelectorAll('.sub-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const pane = btn.dataset.subtab;
+        document.getElementById('exercisesPane').classList.toggle('hidden', pane !== 'exercises');
+        document.getElementById('templatesPane').classList.toggle('hidden', pane !== 'templates');
+        if (pane === 'templates') renderTemplateList();
+        updateFab(true);
+    };
+});
+
 // ==================== 초기화 ====================
 
 // 앱 초기화 (데이터 로드 후 실행)
@@ -287,6 +354,7 @@ async function initApp() {
     // UI 초기화
     updateLangButtons();
     updateUnitButtons();
+    updateTabBarHeight();
 
     // 뒤로가기 핸들러 등록 (Capacitor 플러그인 로드 후)
     initBackButtonHandler();

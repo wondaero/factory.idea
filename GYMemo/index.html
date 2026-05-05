@@ -146,61 +146,179 @@
             <div id="chartEmpty" class="empty" data-i18n="chartEmpty">운동을 선택하면 차트가 표시됩니다</div>
         </div>
 
-        <!-- Achievement Tab -->
-        <div id="achievementTab" class="hidden">
-            <header><h1 data-i18n="tabAchievement">업적</h1></header>
-            <div class="achievement-summary" id="achievementSummary"></div>
-            <div class="achievement-list" id="achievementList"></div>
-        </div>
-
-        <!-- Menu Tab -->
-        <div id="menuTab" class="hidden">
-            <header><h1 data-i18n="tabMenu">설정</h1></header>
-            <div class="menu-list">
-                <div class="menu-section">
-                    <h3 class="menu-section-title" data-i18n="language">언어</h3>
-                    <div class="language-selector">
-                        <button class="lang-btn" data-lang="ko">한국어</button>
-                        <button class="lang-btn" data-lang="en">English</button>
-                    </div>
-                </div>
-                <div class="menu-section">
-                    <h3 class="menu-section-title" data-i18n="weightUnitLabel">무게 단위</h3>
-                    <div class="unit-selector">
-                        <button class="unit-btn" data-unit="kg">kg</button>
-                        <button class="unit-btn" data-unit="lb">lb</button>
-                    </div>
-                </div>
-                <div class="menu-section">
-                    <h3 class="menu-section-title" data-i18n="dataManagement">데이터 관리</h3>
-                    <button class="menu-item" id="loadDataBtn">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                            <polyline points="17 8 12 3 7 8"/>
-                            <line x1="12" y1="3" x2="12" y2="15"/>
+        <!-- MY Tab -->
+        <div id="myTab" class="hidden">
+            <!-- Hub -->
+            <div id="myHub">
+                <header><h1 data-i18n="tabMy">MY</h1></header>
+                <div class="my-hub-list">
+                    <button class="my-hub-item" data-subroute="profile">
+                        <svg class="my-hub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
                         </svg>
-                        <span data-i18n="loadData">데이터 불러오기</span>
+                        <span data-i18n="myProfile">프로필</span>
+                        <svg class="my-hub-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
                     </button>
-                    <button class="menu-item" id="exportDataBtn">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                            <polyline points="7 10 12 15 17 10"/>
-                            <line x1="12" y1="15" x2="12" y2="3"/>
+                    <button class="my-hub-item" data-subroute="achievement">
+                        <svg class="my-hub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M6 9H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h2"/><path d="M18 9h2a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2"/><path d="M4 22h16"/><path d="M10 22V18"/><path d="M14 22v-4"/><path d="M6 3v7a6 6 0 0 0 12 0V3H6z"/>
                         </svg>
-                        <span data-i18n="exportData">데이터 내보내기</span>
+                        <span data-i18n="tabAchievement">업적</span>
+                        <svg class="my-hub-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
                     </button>
-                    <button class="menu-item menu-item-danger" id="resetDataBtn">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="3 6 5 6 21 6"/>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                            <line x1="10" y1="11" x2="10" y2="17"/>
-                            <line x1="14" y1="11" x2="14" y2="17"/>
+                    <button class="my-hub-item" data-subroute="appsettings">
+                        <svg class="my-hub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
                         </svg>
-                        <span data-i18n="resetData">데이터 초기화</span>
+                        <span data-i18n="appSettings">앱 설정</span>
+                        <svg class="my-hub-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
                     </button>
                 </div>
             </div>
-            <input type="file" id="fileInput" accept=".hlog,.json,application/json,application/octet-stream,*/*" class="hidden">
+
+            <!-- 프로필 서브페이지 -->
+            <div id="myProfilePage" class="my-subpage hidden">
+                <header>
+                    <button class="back-btn" id="mySubBackBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                    </button>
+                    <h1 data-i18n="myProfile">프로필</h1>
+                </header>
+                <div class="my-subpage-content">
+                    <div class="profile-group">
+                        <label class="profile-label" data-i18n="profileGoal">목표</label>
+                        <div class="profile-options">
+                            <button class="profile-btn" data-field="goal" data-value="diet" data-i18n="goalDiet">다이어트</button>
+                            <button class="profile-btn" data-field="goal" data-value="muscle" data-i18n="goalMuscle">근육증가</button>
+                            <button class="profile-btn" data-field="goal" data-value="fitness" data-i18n="goalFitness">체력향상</button>
+                            <button class="profile-btn profile-btn-other" data-field="goal" data-value="other">기타</button>
+                        </div>
+                        <input type="text" class="profile-other-input hidden" data-field="goal" placeholder="목표를 직접 입력하세요" maxlength="50">
+                    </div>
+                    <div class="profile-group">
+                        <label class="profile-label" data-i18n="profileLevel">수준</label>
+                        <div class="profile-options">
+                            <button class="profile-btn" data-field="level" data-value="beginner" data-i18n="levelBeginner">초보</button>
+                            <button class="profile-btn" data-field="level" data-value="intermediate" data-i18n="levelIntermediate">중급</button>
+                            <button class="profile-btn" data-field="level" data-value="advanced" data-i18n="levelAdvanced">고급</button>
+                        </div>
+                    </div>
+                    <div class="profile-group">
+                        <label class="profile-label" data-i18n="profileFrequency">주당 운동</label>
+                        <div class="profile-options">
+                            <button class="profile-btn" data-field="frequency" data-value="2-3" data-i18n="freq23">2-3일</button>
+                            <button class="profile-btn" data-field="frequency" data-value="4-5" data-i18n="freq45">4-5일</button>
+                            <button class="profile-btn" data-field="frequency" data-value="6-7" data-i18n="freq67">6-7일</button>
+                            <button class="profile-btn profile-btn-other" data-field="frequency" data-value="other">기타</button>
+                        </div>
+                        <input type="text" class="profile-other-input hidden" data-field="frequency" placeholder="예: 주 1회, 격일" maxlength="30">
+                    </div>
+                    <div class="profile-group">
+                        <label class="profile-label" data-i18n="profileEquipment">장비</label>
+                        <div class="profile-options">
+                            <button class="profile-btn" data-field="equipment" data-value="gym" data-i18n="equipGym">헬스장</button>
+                            <button class="profile-btn" data-field="equipment" data-value="home" data-i18n="equipHome">홈짐</button>
+                            <button class="profile-btn" data-field="equipment" data-value="bodyweight" data-i18n="equipBodyweight">맨몸</button>
+                            <button class="profile-btn profile-btn-other" data-field="equipment" data-value="other">기타</button>
+                        </div>
+                        <input type="text" class="profile-other-input hidden" data-field="equipment" placeholder="예: 공원, 수영장" maxlength="30">
+                    </div>
+                    <div class="profile-group">
+                        <label class="profile-label" data-i18n="profileGender">성별</label>
+                        <div class="profile-options">
+                            <button class="profile-btn" data-field="gender" data-value="male" data-i18n="genderMale">남</button>
+                            <button class="profile-btn" data-field="gender" data-value="female" data-i18n="genderFemale">여</button>
+                        </div>
+                    </div>
+                    <div class="profile-group">
+                        <label class="profile-label" data-i18n="profileAge">나이대</label>
+                        <div class="profile-options">
+                            <button class="profile-btn" data-field="age" data-value="10s" data-i18n="age10s">10대</button>
+                            <button class="profile-btn" data-field="age" data-value="20s" data-i18n="age20s">20대</button>
+                            <button class="profile-btn" data-field="age" data-value="30s" data-i18n="age30s">30대</button>
+                            <button class="profile-btn" data-field="age" data-value="40s" data-i18n="age40s">40대</button>
+                            <button class="profile-btn" data-field="age" data-value="50s+" data-i18n="age50s">50대+</button>
+                        </div>
+                    </div>
+                    <div class="profile-group">
+                        <label class="profile-label" data-i18n="profileInjuries">부상/주의</label>
+                        <div class="profile-options">
+                            <button class="profile-btn multi" data-field="injuries" data-value="none" data-i18n="injuryNone">없음</button>
+                            <button class="profile-btn multi" data-field="injuries" data-value="back" data-i18n="injuryBack">허리</button>
+                            <button class="profile-btn multi" data-field="injuries" data-value="knee" data-i18n="injuryKnee">무릎</button>
+                            <button class="profile-btn multi" data-field="injuries" data-value="shoulder" data-i18n="injuryShoulder">어깨</button>
+                        </div>
+                        <input type="text" class="profile-other-input" data-field="injuries-other" placeholder="기타 부상/주의사항 (선택)" maxlength="50">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 업적 서브페이지 -->
+            <div id="myAchievementPage" class="my-subpage hidden">
+                <header>
+                    <button class="back-btn" id="myAchBackBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                    </button>
+                    <h1 data-i18n="tabAchievement">업적</h1>
+                </header>
+                <div class="achievement-summary" id="achievementSummary"></div>
+                <div class="achievement-list" id="achievementList"></div>
+            </div>
+
+            <!-- 앱 설정 서브페이지 -->
+            <div id="myAppSettingsPage" class="my-subpage hidden">
+                <header>
+                    <button class="back-btn" id="mySettingsSubBackBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                    </button>
+                    <h1 data-i18n="appSettings">앱 설정</h1>
+                </header>
+                <div class="menu-list">
+                    <div class="menu-section">
+                        <h3 class="menu-section-title" data-i18n="language">언어</h3>
+                        <div class="language-selector">
+                            <button class="lang-btn" data-lang="ko">한국어</button>
+                            <button class="lang-btn" data-lang="en">English</button>
+                        </div>
+                    </div>
+                    <div class="menu-section">
+                        <h3 class="menu-section-title" data-i18n="weightUnitLabel">무게 단위</h3>
+                        <div class="unit-selector">
+                            <button class="unit-btn" data-unit="kg">kg</button>
+                            <button class="unit-btn" data-unit="lb">lb</button>
+                        </div>
+                    </div>
+                    <div class="menu-section">
+                        <h3 class="menu-section-title" data-i18n="dataManagement">데이터 관리</h3>
+                        <button class="menu-item" id="loadDataBtn">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                            <span data-i18n="loadData">데이터 불러오기</span>
+                        </button>
+                        <button class="menu-item" id="exportDataBtn">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7 10 12 15 17 10"/>
+                                <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                            <span data-i18n="exportData">데이터 내보내기</span>
+                        </button>
+                        <button class="menu-item menu-item-danger" id="resetDataBtn">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                <line x1="10" y1="11" x2="10" y2="17"/>
+                                <line x1="14" y1="11" x2="14" y2="17"/>
+                            </svg>
+                            <span data-i18n="resetData">데이터 초기화</span>
+                        </button>
+                    </div>
+                </div>
+                <input type="file" id="fileInput" accept=".hlog,.json,application/json,application/octet-stream,*/*" class="hidden">
+            </div>
         </div>
 
         <!-- Settings Tab -->
@@ -211,17 +329,35 @@
                         <path d="M15 18l-6-6 6-6"/>
                     </svg>
                 </button>
-                <h1 data-i18n="tabSettings">운동 설정</h1>
-                <button class="header-add-btn" id="openAddExercise">+</button>
+                <h1 data-i18n="tabSettings">운동</h1>
+                <div class="header-spacer"></div>
             </header>
-            <div class="search-row">
-                <input type="text" id="exerciseSearch" data-i18n="searchExercise" placeholder="운동 검색">
+            <div class="sub-tab-bar">
+                <button class="sub-tab active" data-subtab="exercises" data-i18n="exercises">운동</button>
+                <button class="sub-tab" data-subtab="templates" data-i18n="templates">템플릿</button>
             </div>
-            <div class="sort-toggle" id="sortToggle">
-                <button class="sort-btn active" data-sort="registered" data-i18n="sortByRegistered">등록순</button>
-                <button class="sort-btn" data-sort="name" data-i18n="sortByName">가나다순</button>
+            <!-- 운동 서브탭 -->
+            <div id="exercisesPane">
+                <div class="search-row">
+                    <input type="text" id="exerciseSearch" data-i18n="searchExercise" placeholder="운동 검색">
+                </div>
+                <div class="sort-toggle" id="sortToggle">
+                    <button class="sort-btn active" data-sort="registered" data-i18n="sortByRegistered">등록순</button>
+                    <button class="sort-btn" data-sort="name" data-i18n="sortByName">가나다순</button>
+                </div>
+                <div class="list" id="exerciseList"></div>
             </div>
-            <div class="list" id="exerciseList"></div>
+            <!-- 템플릿 서브탭 -->
+            <div id="templatesPane" class="hidden">
+                <div class="search-row">
+                    <input type="text" id="templateSearch" data-i18n="searchTemplate" placeholder="템플릿 검색">
+                </div>
+                <div class="sort-toggle" id="templateSortToggle">
+                    <button class="sort-btn active" data-sort="registered" data-i18n="sortByRegistered">등록순</button>
+                    <button class="sort-btn" data-sort="name" data-i18n="sortByName">가나다순</button>
+                </div>
+                <div class="list" id="templateList"></div>
+            </div>
         </div>
     </div>
 
@@ -245,6 +381,67 @@
                 <textarea id="newExerciseMemo" data-i18n="enterExerciseDesc" placeholder="운동에 대한 설명을 입력하세요" rows="3"></textarea>
             </div>
             <button class="submit-btn" id="submitAddExercise" data-i18n="addExerciseBtn">추가하기</button>
+        </div>
+    </div>
+
+    <!-- Add Template Page -->
+    <div class="add-exercise-page hidden" id="addTemplatePage">
+        <header>
+            <button class="back-btn" id="closeAddTemplate">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15 18l-6-6 6-6"/>
+                </svg>
+            </button>
+            <h1 data-i18n="addTemplate">템플릿 추가</h1>
+        </header>
+        <div class="add-template-form">
+            <div class="form-group">
+                <input type="text" id="newTemplateName" data-i18n="enterTemplateName" placeholder="템플릿 이름을 입력하세요" class="template-name-input">
+            </div>
+            <div class="form-group">
+                <textarea id="newTemplateMemo" placeholder="메모 (선택사항)" class="template-memo-input" rows="2"></textarea>
+            </div>
+            <div class="template-section-label" data-i18n="selectedExercises">선택된 운동</div>
+            <div id="templateOrderList" class="template-order-list">
+                <div class="template-order-empty" data-i18n="tapToAddExercise">아래에서 운동을 선택하세요</div>
+            </div>
+            <div class="template-section-label" data-i18n="addExercise">운동 선택</div>
+            <div id="templateExercisePicker" class="template-exercise-picker"></div>
+            <button class="submit-btn" id="submitAddTemplate" data-i18n="addTemplateBtn">추가하기</button>
+        </div>
+    </div>
+
+    <!-- Add Record Action Sheet -->
+    <div class="bottom-sheet-overlay hidden" id="addRecordSheet">
+        <div class="bottom-sheet">
+            <div class="bottom-sheet-handle"></div>
+            <div class="bottom-sheet-title">기록 추가</div>
+            <label class="radio-sheet-item" id="sheetChooseExercise">
+                <div class="radio-sheet-info">
+                    <div class="radio-sheet-label">운동 선택</div>
+                    <div class="radio-sheet-sub">등록된 운동 목록에서 선택</div>
+                </div>
+                <div class="radio-dot" id="radioDotExercise"></div>
+            </label>
+            <label class="radio-sheet-item" id="sheetChooseTemplate">
+                <div class="radio-sheet-info">
+                    <div class="radio-sheet-label">템플릿 선택</div>
+                    <div class="radio-sheet-sub">템플릿 내 운동 한 번에 등록</div>
+                </div>
+                <div class="radio-dot" id="radioDotTemplate"></div>
+            </label>
+            <button class="bottom-sheet-confirm" id="sheetConfirm">확인</button>
+            <button class="bottom-sheet-cancel" id="sheetCancel">취소</button>
+        </div>
+    </div>
+
+    <!-- Template Picker Sheet -->
+    <div class="bottom-sheet-overlay hidden" id="templatePickerSheet">
+        <div class="bottom-sheet">
+            <div class="bottom-sheet-handle"></div>
+            <div class="bottom-sheet-title">템플릿 선택</div>
+            <div id="templatePickerList"></div>
+            <button class="bottom-sheet-cancel" id="templatePickerCancel">취소</button>
         </div>
     </div>
 
@@ -336,6 +533,13 @@
         </div>
     </div>
 
+    <!-- FAB -->
+    <button class="fab hidden" id="fabAddExercise">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+    </button>
+
     <!-- Tab Bar -->
     <nav class="tab-bar">
         <button class="tab-item" data-tab="chart">
@@ -343,17 +547,6 @@
                 <path d="M18 20V10M12 20V4M6 20v-6"/>
             </svg>
             <span data-i18n="tabChart">차트</span>
-        </button>
-        <button class="tab-item" data-tab="achievement">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M6 9H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h2"/>
-                <path d="M18 9h2a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2"/>
-                <path d="M4 22h16"/>
-                <path d="M10 22V18"/>
-                <path d="M14 22v-4"/>
-                <path d="M6 3v7a6 6 0 0 0 12 0V3H6z"/>
-            </svg>
-            <span data-i18n="tabAchievement">업적</span>
         </button>
         <button class="tab-item active" data-tab="record">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -372,12 +565,12 @@
             </svg>
             <span data-i18n="tabSettings">운동</span>
         </button>
-        <button class="tab-item" data-tab="menu">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        <button class="tab-item" data-tab="my">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
             </svg>
-            <span data-i18n="tabMenu">설정</span>
+            <span data-i18n="tabMy">MY</span>
         </button>
     </nav>
 
@@ -388,6 +581,8 @@
     <script src="js/record.js"></script>
     <script src="js/chart.js"></script>
     <script src="js/achievement.js"></script>
+    <script src="js/profile.js"></script>
+    <script src="js/template.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

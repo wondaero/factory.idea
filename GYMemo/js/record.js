@@ -61,9 +61,8 @@ const $ = id => document.getElementById(id);
 const tabs = {
     record: $('recordTab'),
     chart: $('chartTab'),
-    achievement: $('achievementTab'),
-    settings: $('settingsTab'),
-    menu: $('menuTab')
+    my: $('myTab'),
+    settings: $('settingsTab')
 };
 const tabButtons = document.querySelectorAll('.tab-item');
 const calendarViewBtn = $('calendarViewBtn');
@@ -338,23 +337,42 @@ function showDayDetail(dateStr) {
     }
 
     const exercises = getExercisesForDate(dateStr);
-    const hasRecords = exercises.length > 0;
+    const plannedIds = (data.plannedExercises || {})[dateStr] || [];
+    const recordedIds = new Set(exercises.map(ex => ex.id));
+    const plannedOnly = plannedIds
+        .filter(id => !recordedIds.has(id))
+        .map(id => getExerciseById(id))
+        .filter(Boolean);
 
-    // 기록이 없으면 닫기 버튼 숨김
-    $('closeDayDetail').classList.toggle('hidden', !hasRecords);
+    const hasContent = exercises.length > 0 || plannedOnly.length > 0;
 
-    dayExercises.innerHTML = hasRecords
-        ? exercises.map(ex => `
-            <div class="day-exercise-item" data-exercise-id="${ex.id}">
-                <span class="color-dot" style="background:${ex.color}"></span>
-                <div class="exercise-info">
-                    <div class="exercise-name">${ex.name}</div>
-                    <div class="exercise-sets">${t('nSets', ex.sets)}</div>
-                    ${ex.memo ? `<div class="exercise-memo">${ex.memo}</div>` : ''}
-                </div>
-                <button class="delete-btn" data-delete-id="${ex.id}">×</button>
+    $('closeDayDetail').classList.toggle('hidden', !hasContent);
+
+    const recordedHtml = exercises.map(ex => `
+        <div class="day-exercise-item" data-exercise-id="${ex.id}">
+            <span class="color-dot" style="background:${ex.color}"></span>
+            <div class="exercise-info">
+                <div class="exercise-name">${ex.name}</div>
+                <div class="exercise-sets">${t('nSets', ex.sets)}</div>
+                ${ex.memo ? `<div class="exercise-memo">${ex.memo}</div>` : ''}
             </div>
-        `).join('')
+            <button class="delete-btn" data-delete-id="${ex.id}">×</button>
+        </div>
+    `).join('');
+
+    const plannedHtml = plannedOnly.map(ex => `
+        <div class="day-exercise-item planned" data-exercise-id="${ex.id}">
+            <span class="color-dot" style="background:${ex.color};opacity:0.4"></span>
+            <div class="exercise-info">
+                <div class="exercise-name" style="opacity:0.5">${ex.name}</div>
+                <div class="exercise-sets planned-label">미기록</div>
+            </div>
+            <button class="planned-remove-btn" data-planned-id="${ex.id}">×</button>
+        </div>
+    `).join('');
+
+    dayExercises.innerHTML = hasContent
+        ? recordedHtml + plannedHtml
         : `<div class="empty" style="padding:20px">${t('noRecords')}</div>`;
 
     dayDetail.classList.remove('hidden');
@@ -385,11 +403,86 @@ calendarDays.onclick = e => {
 
 $('closeDayDetail').onclick = () => clearAllForDate(selectedDate);
 
+let addRecordPreference = localStorage.getItem('addRecordPref') || null; // 'exercise' | 'template' | null
+
 function goToSettingsForAdd() {
     switchTab('settings');
 }
 
-$('dayAddBtn').onclick = () => goToSettingsForAdd();
+const addRecordSheet = document.getElementById('addRecordSheet');
+const templatePickerSheet = document.getElementById('templatePickerSheet');
+
+let sheetSelection = addRecordPreference || 'exercise';
+
+function updateRadioDots() {
+    document.getElementById('radioDotExercise').classList.toggle('active', sheetSelection === 'exercise');
+    document.getElementById('radioDotTemplate').classList.toggle('active', sheetSelection === 'template');
+}
+
+function openAddActionSheet() {
+    sheetSelection = addRecordPreference || 'exercise';
+    updateRadioDots();
+    addRecordSheet.classList.remove('hidden');
+}
+
+function closeAddRecordSheet() {
+    addRecordSheet.classList.add('hidden');
+}
+
+function openTemplatePickerForDate() {
+    if (!templates || !templates.length) {
+        alert('등록된 템플릿이 없습니다.');
+        return;
+    }
+    const list = document.getElementById('templatePickerList');
+    list.innerHTML = templates.map(tmpl => {
+        const exCount = (tmpl.exercises || []).length;
+        return `<button class="bottom-sheet-btn" data-id="${tmpl.id}">
+            <span>${tmpl.name}</span>
+            <span class="bottom-sheet-sub">${exCount}개 운동</span>
+        </button>`;
+    }).join('');
+    list.querySelectorAll('.bottom-sheet-btn').forEach(btn => {
+        btn.onclick = () => {
+            const tmpl = templates.find(t => t.id === btn.dataset.id);
+            if (!tmpl) return;
+            templatePickerSheet.classList.add('hidden');
+            addTemplateToDate(tmpl, selectedDate || today);
+        };
+    });
+    templatePickerSheet.classList.remove('hidden');
+}
+
+function addTemplateToDate(tmpl, date) {
+    if (!data.plannedExercises) data.plannedExercises = {};
+    const existing = data.plannedExercises[date] || [];
+    const toAdd = (tmpl.exercises || []).filter(id => !existing.includes(id));
+    data.plannedExercises[date] = [...existing, ...toAdd];
+    save();
+    showDayDetail(date);
+}
+
+document.getElementById('sheetChooseExercise').onclick = () => {
+    sheetSelection = 'exercise';
+    updateRadioDots();
+};
+document.getElementById('sheetChooseTemplate').onclick = () => {
+    sheetSelection = 'template';
+    updateRadioDots();
+};
+document.getElementById('sheetConfirm').onclick = () => {
+    addRecordPreference = sheetSelection;
+    localStorage.setItem('addRecordPref', sheetSelection);
+    closeAddRecordSheet();
+    if (sheetSelection === 'exercise') goToSettingsForAdd();
+    else openTemplatePickerForDate();
+};
+document.getElementById('sheetCancel').onclick = closeAddRecordSheet;
+document.getElementById('templatePickerCancel').onclick = () => templatePickerSheet.classList.add('hidden');
+addRecordSheet.onclick = e => { if (e.target === addRecordSheet) closeAddRecordSheet(); };
+templatePickerSheet.onclick = e => { if (e.target === templatePickerSheet) templatePickerSheet.classList.add('hidden'); };
+
+$('dayAddBtn').onclick = () => openAddActionSheet();
 
 async function deleteExerciseForDate(exerciseId, dateStr) {
     const exercise = getExerciseById(exerciseId);
@@ -416,6 +509,15 @@ async function clearAllForDate(dateStr) {
 dayExercises.onclick = e => {
     const del = e.target.closest('.delete-btn');
     if (del) { e.stopPropagation(); deleteExerciseForDate(del.dataset.deleteId, selectedDate); return; }
+    const planDel = e.target.closest('.planned-remove-btn');
+    if (planDel) {
+        e.stopPropagation();
+        const date = selectedDate;
+        data.plannedExercises[date] = (data.plannedExercises[date] || []).filter(id => id !== planDel.dataset.plannedId);
+        save();
+        showDayDetail(date);
+        return;
+    }
     const item = e.target.closest('.day-exercise-item');
     if (item) showDetailById(item.dataset.exerciseId, selectedDate);
 };
@@ -466,15 +568,49 @@ function renderFeedView() {
 
 feedView.onclick = e => {
     const addToday = e.target.closest('.feed-add-today-btn');
-    if (addToday) { selectedDate = addToday.dataset.date; goToSettingsForAdd(); return; }
+    if (addToday) { selectedDate = addToday.dataset.date; openAddActionSheet(); return; }
     const add = e.target.closest('.feed-day-add');
-    if (add) { selectedDate = add.dataset.date; goToSettingsForAdd(); return; }
+    if (add) { selectedDate = add.dataset.date; openAddActionSheet(); return; }
     const ex = e.target.closest('.feed-exercise');
     if (ex) showDetailById(ex.dataset.exerciseId, ex.dataset.date);
 };
 
 // ==================== Exercise List ====================
+let templateFilterId = null;
+
+function renderTemplateChips() {
+    let container = document.getElementById('templateFilterChips');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'templateFilterChips';
+        container.className = 'template-filter-chips';
+        const exercisesPane = document.getElementById('exercisesPane');
+        exercisesPane.insertBefore(container, exercisesPane.querySelector('.search-row'));
+    }
+
+    if (!templates || !templates.length) {
+        container.innerHTML = '';
+        return;
+    }
+
+    const chips = templates.map(tmpl => `
+        <button class="template-chip ${templateFilterId === tmpl.id ? 'active' : ''}" data-id="${tmpl.id}">
+            ${tmpl.name}
+        </button>
+    `).join('');
+    container.innerHTML = chips;
+
+    container.querySelectorAll('.template-chip').forEach(chip => {
+        chip.onclick = () => {
+            templateFilterId = templateFilterId === chip.dataset.id ? null : chip.dataset.id;
+            renderTemplateChips();
+            renderMain();
+        };
+    });
+}
+
 function renderMain(searchQuery = '') {
+    renderTemplateChips();
     document.querySelectorAll('.sort-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.sort === exerciseSortOrder);
     });
@@ -485,9 +621,15 @@ function renderMain(searchQuery = '') {
     }
 
     let filtered = data.exercises;
+
+    if (templateFilterId) {
+        const tmpl = (typeof templates !== 'undefined' ? templates : []).find(t => t.id === templateFilterId);
+        if (tmpl) filtered = filtered.filter(ex => (tmpl.exercises || []).includes(ex.id));
+    }
+
     if (searchQuery) {
         const q = searchQuery.toLowerCase();
-        filtered = data.exercises.filter(ex =>
+        filtered = filtered.filter(ex =>
             ex.name.toLowerCase().includes(q) ||
             (ex.memo && ex.memo.toLowerCase().includes(q))
         );
@@ -718,11 +860,13 @@ function openAddExercisePage() {
     colorPickerModal.classList.remove('show');
     tabs.settings.classList.add('hidden');
     addExercisePage.classList.remove('hidden');
+    if (typeof updateFab === 'function') updateFab(false);
 }
 
 function closeAddExercisePage() {
     addExercisePage.classList.add('hidden');
     tabs.settings.classList.remove('hidden');
+    if (typeof updateFab === 'function') updateFab(true);
 }
 
 async function addExercise() {
@@ -745,7 +889,6 @@ async function addExercise() {
     closeAddExercisePage();
 }
 
-$('openAddExercise').onclick = openAddExercisePage;
 $('closeAddExercise').onclick = closeAddExercisePage;
 $('submitAddExercise').onclick = addExercise;
 newExerciseNameInput.onkeydown = e => { if (e.key === 'Enter') addExercise(); };

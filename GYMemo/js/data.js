@@ -125,8 +125,10 @@ function getExerciseByName(name) {
 }
 
 // 데이터 초기값
-let data = { exercises: [], records: [], achievements: {} };
+let data = { exercises: [], records: [], achievements: {}, plannedExercises: {} };
 let exerciseSortOrder = 'registered';
+let userProfile = { goal: null, level: null, frequency: null, equipment: null, gender: null, age: null, injuries: [] };
+let templates = [];
 let dataReady = false;
 let dataReadyPromise = null;
 let dataReadyResolve = null;
@@ -150,6 +152,12 @@ async function initData() {
         }
         if (stored.exerciseSortOrder) {
             exerciseSortOrder = stored.exerciseSortOrder;
+        }
+        if (stored.userProfile) {
+            userProfile = { ...userProfile, ...stored.userProfile };
+        }
+        if (stored.templates) {
+            templates = stored.templates;
         }
 
         data = migrateData(stored);
@@ -277,7 +285,7 @@ function loadDummyData() {
 
 // 비동기 저장
 async function save() {
-    await writeStorage({ ...data, isPremium, exerciseSortOrder, weightUnit });
+    await writeStorage({ ...data, isPremium, exerciseSortOrder, weightUnit, userProfile, templates });
 }
 
 // 무게 단위 변환 함수
