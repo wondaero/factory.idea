@@ -29,7 +29,7 @@ function renderTemplateList() {
         list.sort((a, b) => a.name.localeCompare(b.name));
     }
 
-    const html = list.map(tmpl => {
+    templateList.innerHTML = list.map(tmpl => {
         const exercises = (tmpl.exercises || [])
             .map(id => getExerciseById(id))
             .filter(Boolean);
@@ -58,28 +58,6 @@ function renderTemplateList() {
             ${exercises.length ? `<div class="template-card-tags">${tags}</div>` : '<div class="template-card-empty">운동 없음</div>'}
         </div>`;
     }).join('');
-
-    templateList.innerHTML = html;
-
-    templateList.querySelectorAll('.template-card').forEach(card => {
-        card.onclick = () => {
-            const tmpl = templates.find(tmpl => tmpl.id === card.dataset.id);
-            if (tmpl) openEditTemplatePage(tmpl);
-        };
-    });
-
-    templateList.querySelectorAll('.template-delete-btn').forEach(btn => {
-        btn.onclick = (e) => {
-            e.stopPropagation();
-            const id = btn.dataset.id;
-            const tmpl = templates.find(tmpl => tmpl.id === id);
-            if (!tmpl) return;
-            if (!confirm(t('deleteTemplateConfirm')(tmpl.name))) return;
-            templates = templates.filter(tmpl => tmpl.id !== id);
-            save();
-            renderTemplateList();
-        };
-    });
 }
 
 // ==================== 추가 페이지 ====================
@@ -130,19 +108,6 @@ function renderTemplatePicker() {
             ${selected ? '<svg class="template-picker-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
         </button>`;
     }).join('');
-
-    templateExercisePicker.querySelectorAll('.template-picker-item').forEach(btn => {
-        btn.onclick = () => {
-            const id = btn.dataset.id;
-            if (selectedExerciseIds.includes(id)) {
-                selectedExerciseIds = selectedExerciseIds.filter(i => i !== id);
-            } else {
-                selectedExerciseIds.push(id);
-            }
-            renderTemplatePicker();
-            renderTemplateOrder();
-        };
-    });
 }
 
 function renderTemplateOrder() {
@@ -151,7 +116,7 @@ function renderTemplateOrder() {
         return;
     }
 
-    templateOrderList.innerHTML = selectedExerciseIds.map((id, idx) => {
+    templateOrderList.innerHTML = selectedExerciseIds.map(id => {
         const ex = getExerciseById(id);
         if (!ex) return '';
         return `
@@ -167,66 +132,49 @@ function renderTemplateOrder() {
         </div>`;
     }).join('');
 
-    templateOrderList.querySelectorAll('.template-order-remove').forEach(btn => {
-        btn.onclick = () => {
-            selectedExerciseIds = selectedExerciseIds.filter(i => i !== btn.dataset.id);
-            renderTemplatePicker();
-            renderTemplateOrder();
-        };
-    });
-
-    initDragOrder();
 }
 
-// ==================== 드래그 & 드롭 ====================
+// ==================== 드래그 & 드롭 (컨테이너에 한번만 등록) ====================
 
-function initDragOrder() {
+{
     let dragging = null;
     let placeholder = null;
 
-    templateOrderList.querySelectorAll('.template-order-item').forEach(item => {
-        const handle = item.querySelector('.drag-handle');
+    templateOrderList.addEventListener('pointerdown', e => {
+        const handle = e.target.closest('.drag-handle');
+        if (!handle) return;
+        e.preventDefault();
+        dragging = handle.closest('.template-order-item');
+        dragging.classList.add('dragging');
+        placeholder = document.createElement('div');
+        placeholder.className = 'drag-placeholder';
+        placeholder.style.height = dragging.offsetHeight + 'px';
+        dragging.after(placeholder);
+        handle.setPointerCapture(e.pointerId);
+    });
 
-        handle.addEventListener('pointerdown', (e) => {
-            e.preventDefault();
-            dragging = item;
-            item.classList.add('dragging');
+    templateOrderList.addEventListener('pointermove', e => {
+        if (!dragging) return;
+        const y = e.clientY;
+        const siblings = [...templateOrderList.querySelectorAll('.template-order-item:not(.dragging)')];
+        let insertBefore = null;
+        for (const sib of siblings) {
+            const r = sib.getBoundingClientRect();
+            if (y < r.top + r.height / 2) { insertBefore = sib; break; }
+        }
+        insertBefore
+            ? templateOrderList.insertBefore(placeholder, insertBefore)
+            : templateOrderList.appendChild(placeholder);
+    });
 
-            placeholder = document.createElement('div');
-            placeholder.className = 'drag-placeholder';
-            placeholder.style.height = item.offsetHeight + 'px';
-            item.after(placeholder);
-
-            handle.setPointerCapture(e.pointerId);
-        });
-
-        handle.addEventListener('pointermove', (e) => {
-            if (dragging !== item) return;
-
-            const y = e.clientY;
-            const siblings = [...templateOrderList.querySelectorAll('.template-order-item:not(.dragging)')];
-            let insertBefore = null;
-            for (const sib of siblings) {
-                const r = sib.getBoundingClientRect();
-                if (y < r.top + r.height / 2) { insertBefore = sib; break; }
-            }
-            if (insertBefore) {
-                templateOrderList.insertBefore(placeholder, insertBefore);
-            } else {
-                templateOrderList.appendChild(placeholder);
-            }
-        });
-
-        handle.addEventListener('pointerup', () => {
-            if (dragging !== item) return;
-            item.classList.remove('dragging');
-            placeholder.replaceWith(item);
-            dragging = null;
-            placeholder = null;
-
-            selectedExerciseIds = [...templateOrderList.querySelectorAll('.template-order-item')]
-                .map(el => el.dataset.id);
-        });
+    templateOrderList.addEventListener('pointerup', () => {
+        if (!dragging) return;
+        dragging.classList.remove('dragging');
+        placeholder.replaceWith(dragging);
+        dragging = null;
+        placeholder = null;
+        selectedExerciseIds = [...templateOrderList.querySelectorAll('.template-order-item')]
+            .map(el => el.dataset.id);
     });
 }
 
@@ -265,12 +213,54 @@ document.getElementById('templateSearch').oninput = (e) => {
     renderTemplateList();
 };
 
-document.getElementById('templateSortToggle').querySelectorAll('.sort-btn').forEach(btn => {
-    btn.onclick = () => {
-        document.getElementById('templateSortToggle').querySelectorAll('.sort-btn')
-            .forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        templateSortOrder = btn.dataset.sort;
+document.getElementById('templateSortToggle').onclick = e => {
+    const btn = e.target.closest('.sort-btn');
+    if (!btn) return;
+    document.getElementById('templateSortToggle').querySelectorAll('.sort-btn')
+        .forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    templateSortOrder = btn.dataset.sort;
+    renderTemplateList();
+};
+
+// ==================== 위임 핸들러 ====================
+
+templateList.onclick = e => {
+    const deleteBtn = e.target.closest('.template-delete-btn');
+    if (deleteBtn) {
+        const id = deleteBtn.dataset.id;
+        const tmpl = templates.find(t => t.id === id);
+        if (!tmpl) return;
+        if (!confirm(t('deleteTemplateConfirm')(tmpl.name))) return;
+        templates = templates.filter(t => t.id !== id);
+        save();
         renderTemplateList();
-    };
-});
+        return;
+    }
+    const card = e.target.closest('.template-card');
+    if (card) {
+        const tmpl = templates.find(t => t.id === card.dataset.id);
+        if (tmpl) openEditTemplatePage(tmpl);
+    }
+};
+
+templateExercisePicker.onclick = e => {
+    const btn = e.target.closest('.template-picker-item');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    if (selectedExerciseIds.includes(id)) {
+        selectedExerciseIds = selectedExerciseIds.filter(i => i !== id);
+    } else {
+        selectedExerciseIds.push(id);
+    }
+    renderTemplatePicker();
+    renderTemplateOrder();
+};
+
+templateOrderList.onclick = e => {
+    const btn = e.target.closest('.template-order-remove');
+    if (!btn) return;
+    selectedExerciseIds = selectedExerciseIds.filter(i => i !== btn.dataset.id);
+    renderTemplatePicker();
+    renderTemplateOrder();
+};

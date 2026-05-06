@@ -292,14 +292,16 @@ function renderMonthDays(year, month, container) {
     for (let day = 1; day <= totalDays; day++) {
         const date = new Date(year, month, day);
         const dateStr = toDateStr(date);
-        const colors = getExerciseColorsForDate(dateStr);
+        const isFuture = dateStr > today;
+        const colors = isFuture ? [] : getExerciseColorsForDate(dateStr);
         const dow = date.getDay();
         let cls = 'calendar-day';
         if (dateStr === today) cls += ' today';
         if (dateStr === selectedDate) cls += ' selected';
         if (dow === 0) cls += ' sunday';
         else if (dow === 6) cls += ' saturday';
-        html.push(`<button class="${cls}" data-date="${dateStr}"><span class="day-number">${day}</span><div class="exercise-dots">${colors.map(c => `<span class="exercise-dot" style="background:${c}"></span>`).join('')}</div></button>`);
+        if (isFuture) cls += ' future';
+        html.push(`<button class="${cls}" data-date="${dateStr}" ${isFuture ? 'disabled' : ''}><span class="day-number">${day}</span><div class="exercise-dots">${colors.map(c => `<span class="exercise-dot" style="background:${c}"></span>`).join('')}</div></button>`);
     }
 
     // 다음 달
@@ -385,6 +387,8 @@ $('prevMonth').onclick = () => {
 };
 
 $('nextMonth').onclick = () => {
+    const now = new Date();
+    if (calendarYear > now.getFullYear() || (calendarYear === now.getFullYear() && calendarMonth >= now.getMonth())) return;
     if (++calendarMonth > 11) { calendarMonth = 0; calendarYear++; }
     selectFirstDayOfMonth();
 };
@@ -442,14 +446,6 @@ function openTemplatePickerForDate() {
             <span class="bottom-sheet-sub">${exCount}개 운동</span>
         </button>`;
     }).join('');
-    list.querySelectorAll('.bottom-sheet-btn').forEach(btn => {
-        btn.onclick = () => {
-            const tmpl = templates.find(t => t.id === btn.dataset.id);
-            if (!tmpl) return;
-            templatePickerSheet.classList.add('hidden');
-            addTemplateToDate(tmpl, selectedDate || today);
-        };
-    });
     templatePickerSheet.classList.remove('hidden');
 }
 
@@ -479,6 +475,14 @@ document.getElementById('sheetConfirm').onclick = () => {
 };
 document.getElementById('sheetCancel').onclick = closeAddRecordSheet;
 document.getElementById('templatePickerCancel').onclick = () => templatePickerSheet.classList.add('hidden');
+document.getElementById('templatePickerList').onclick = e => {
+    const btn = e.target.closest('.bottom-sheet-btn');
+    if (!btn) return;
+    const tmpl = templates.find(t => t.id === btn.dataset.id);
+    if (!tmpl) return;
+    templatePickerSheet.classList.add('hidden');
+    addTemplateToDate(tmpl, selectedDate || today);
+};
 addRecordSheet.onclick = e => { if (e.target === addRecordSheet) closeAddRecordSheet(); };
 templatePickerSheet.onclick = e => { if (e.target === templatePickerSheet) templatePickerSheet.classList.add('hidden'); };
 
@@ -576,41 +580,7 @@ feedView.onclick = e => {
 };
 
 // ==================== Exercise List ====================
-let templateFilterId = null;
-
-function renderTemplateChips() {
-    let container = document.getElementById('templateFilterChips');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'templateFilterChips';
-        container.className = 'template-filter-chips';
-        const exercisesPane = document.getElementById('exercisesPane');
-        exercisesPane.insertBefore(container, exercisesPane.querySelector('.search-row'));
-    }
-
-    if (!templates || !templates.length) {
-        container.innerHTML = '';
-        return;
-    }
-
-    const chips = templates.map(tmpl => `
-        <button class="template-chip ${templateFilterId === tmpl.id ? 'active' : ''}" data-id="${tmpl.id}">
-            ${tmpl.name}
-        </button>
-    `).join('');
-    container.innerHTML = chips;
-
-    container.querySelectorAll('.template-chip').forEach(chip => {
-        chip.onclick = () => {
-            templateFilterId = templateFilterId === chip.dataset.id ? null : chip.dataset.id;
-            renderTemplateChips();
-            renderMain();
-        };
-    });
-}
-
 function renderMain(searchQuery = '') {
-    renderTemplateChips();
     document.querySelectorAll('.sort-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.sort === exerciseSortOrder);
     });
@@ -621,11 +591,6 @@ function renderMain(searchQuery = '') {
     }
 
     let filtered = data.exercises;
-
-    if (templateFilterId) {
-        const tmpl = (typeof templates !== 'undefined' ? templates : []).find(t => t.id === templateFilterId);
-        if (tmpl) filtered = filtered.filter(ex => (tmpl.exercises || []).includes(ex.id));
-    }
 
     if (searchQuery) {
         const q = searchQuery.toLowerCase();
@@ -913,205 +878,126 @@ exerciseList.onclick = async e => {
 
 // backBtn onclick은 app.js에서 라우팅과 함께 처리
 
-// ==================== Title & Color Edit ====================
-let editContainer = null;
+// ==================== 운동 수정 바텀시트 ====================
 let editingExerciseColor = null;
 
-function startEditTitle() {
-    if (editContainer) return;
+const exerciseEditSheet = $('exerciseEditSheet');
+const exerciseEditColorBtn = $('exerciseEditColorBtn');
+const exerciseEditNameInput = $('exerciseEditNameInput');
+const exerciseEditMemoInput = $('exerciseEditMemoInput');
+
+function openExerciseEditSheet() {
     const exercise = getExerciseById(currentExercise);
     if (!exercise) return;
-    const currentName = exercise.name;
+
     editingExerciseColor = exercise.color || '#339af0';
-    const header = detailTitle.parentElement;
+    exerciseEditColorBtn.style.background = editingExerciseColor;
+    exerciseEditNameInput.value = exercise.name;
+    exerciseEditMemoInput.value = exercise.memo || '';
 
-    editContainer = document.createElement('div');
-    editContainer.className = 'title-edit-container';
-    editContainer.innerHTML = `
-        <button type="button" class="color-edit-btn" style="background:${editingExerciseColor}"></button>
-        <input type="text" class="title-input" value="${currentName}">
-        <div class="title-edit-btns">
-            <button class="title-save-btn">${t('save')}</button>
-            <button class="title-cancel-btn">${t('cancel')}</button>
-        </div>
-    `;
-
-    detailTitle.style.display = 'none';
-    editTitleBtn.style.display = 'none';
-    header.insertBefore(editContainer, detailTitle);
-
-    const input = editContainer.querySelector('.title-input');
-    const colorBtn = editContainer.querySelector('.color-edit-btn');
-    input.focus();
-    input.select();
-
-    // Color picker for editing
-    colorBtn.onclick = () => {
-        // Use the existing color picker modal
-        const colors = getAvailableColors();
-        colorPickerGrid.innerHTML = colors.map(c =>
-            `<div class="color-option${c === editingExerciseColor ? ' selected' : ''}" data-color="${c}" style="background:${c}"></div>`
-        ).join('') + (!isPremium ? `<div class="color-option premium-more" data-premium="true">+${PRESET_COLORS.length - LITE_COLORS.length}</div>` : '');
-
-        // Override click handler for edit mode
-        const originalHandler = colorPickerGrid.onclick;
-        colorPickerGrid.onclick = e => {
-            if (!e.target.classList.contains('color-option')) return;
-            if (e.target.dataset.premium === 'true') {
-                showUpgradePrompt(t('moreColors'));
-                return;
-            }
-            editingExerciseColor = e.target.dataset.color;
-            colorBtn.style.background = editingExerciseColor;
-            colorPickerGrid.querySelectorAll('.color-option').forEach(el =>
-                el.classList.toggle('selected', el.dataset.color === editingExerciseColor)
-            );
-            colorPickerModal.classList.remove('show');
-            // Restore original handler
-            colorPickerGrid.onclick = originalHandler;
-        };
-        colorPickerModal.classList.add('show');
-    };
-
-    async function finishEdit(shouldSave) {
-        const newName = input.value.trim();
-        const newColor = editingExerciseColor;
-        editContainer.remove();
-        editContainer = null;
-        detailTitle.style.display = '';
-        editTitleBtn.style.display = '';
-
-        if (!shouldSave) return;
-        if (!newName) return;
-
-        // Check if only color changed
-        const colorChanged = newColor !== exercise.color;
-        const nameChanged = newName !== currentName;
-
-        if (!nameChanged && !colorChanged) return;
-
-        if (nameChanged) {
-            const existing = data.exercises.find(ex => ex.name === newName && ex.id !== currentExercise);
-            if (existing) {
-                const confirmed = await showConfirm(t('mergeExerciseConfirm', newName), 'warning');
-                if (confirmed) {
-                    data.records.forEach(r => { if (r.exerciseId === currentExercise) r.exerciseId = existing.id; });
-                    data.exercises = data.exercises.filter(ex => ex.id !== currentExercise);
-                    currentExercise = existing.id;
-                    detailTitle.textContent = newName;
-                    if (existing.memo) {
-                        exerciseMemoDisplay.textContent = existing.memo;
-                        exerciseMemoDisplay.classList.remove('hidden');
-                    } else {
-                        exerciseMemoDisplay.classList.add('hidden');
-                    }
-                    save();
-                    renderDetail();
-                    updateAddSetBtnColor();
-                }
-                return;
-            }
-            exercise.name = newName;
-            detailTitle.textContent = newName;
-        }
-
-        if (colorChanged) {
-            exercise.color = newColor;
-        }
-
-        save();
-        updateAddSetBtnColor();
-        renderMain();
-        currentViewMode === 'calendar' ? renderCalendar() : renderFeedView();
-    }
-
-    editContainer.querySelector('.title-save-btn').onclick = () => finishEdit(true);
-    editContainer.querySelector('.title-cancel-btn').onclick = () => finishEdit(false);
-    input.onkeydown = e => {
-        if (e.key === 'Enter') finishEdit(true);
-        else if (e.key === 'Escape') finishEdit(false);
-    };
+    exerciseEditSheet.classList.remove('hidden');
+    setTimeout(() => exerciseEditNameInput.focus(), 100);
 }
 
-editTitleBtn.onclick = startEditTitle;
-detailTitle.onclick = startEditTitle;
-
-// 제목 수정 취소 (외부에서 호출 가능)
-function cancelTitleEdit() {
-    if (editContainer) {
-        editContainer.remove();
-        editContainer = null;
-        detailTitle.style.display = '';
-        editTitleBtn.style.display = '';
-        editingExerciseColor = null;
-    }
+function closeExerciseEditSheet() {
+    exerciseEditSheet.classList.add('hidden');
+    editingExerciseColor = null;
 }
 
-// ==================== 운동 메모 수정 ====================
-let memoEditContainer = null;
+exerciseEditColorBtn.onclick = () => {
+    const colors = getAvailableColors();
+    colorPickerGrid.innerHTML = colors.map(c =>
+        `<div class="color-option${c === editingExerciseColor ? ' selected' : ''}" data-color="${c}" style="background:${c}"></div>`
+    ).join('') + (!isPremium ? `<div class="color-option premium-more" data-premium="true">+${PRESET_COLORS.length - LITE_COLORS.length}</div>` : '');
 
-function startEditMemo() {
-    if (memoEditContainer) return;
-    if (!currentExercise) return;
+    const originalHandler = colorPickerGrid.onclick;
+    colorPickerGrid.onclick = e => {
+        if (!e.target.classList.contains('color-option')) return;
+        if (e.target.dataset.premium === 'true') { showUpgradePrompt(t('moreColors')); return; }
+        editingExerciseColor = e.target.dataset.color;
+        exerciseEditColorBtn.style.background = editingExerciseColor;
+        colorPickerGrid.querySelectorAll('.color-option').forEach(el =>
+            el.classList.toggle('selected', el.dataset.color === editingExerciseColor)
+        );
+        colorPickerModal.classList.remove('show');
+        colorPickerGrid.onclick = originalHandler;
+    };
+    colorPickerModal.classList.add('show');
+};
 
+$('exerciseEditSaveBtn').onclick = async () => {
     const exercise = getExerciseById(currentExercise);
-    if (!exercise) return;
+    if (!exercise) return closeExerciseEditSheet();
 
-    memoEditContainer = document.createElement('div');
-    memoEditContainer.className = 'memo-edit-container';
-    memoEditContainer.innerHTML = `
-        <textarea class="memo-edit-input" placeholder="${t('enterExerciseDesc')}">${exercise.memo || ''}</textarea>
-        <div class="memo-edit-actions">
-            <button type="button" class="memo-cancel-btn">${t('cancel')}</button>
-            <button type="button" class="memo-save-btn">${t('save')}</button>
-        </div>
-    `;
+    const newName = exerciseEditNameInput.value.trim();
+    const newMemo = exerciseEditMemoInput.value.trim();
+    const newColor = editingExerciseColor;
 
-    exerciseMemoDisplay.style.display = 'none';
-    exerciseMemoDisplay.parentElement.insertBefore(memoEditContainer, exerciseMemoDisplay.nextSibling);
+    if (!newName) return;
 
-    const textarea = memoEditContainer.querySelector('.memo-edit-input');
-    const saveBtn = memoEditContainer.querySelector('.memo-save-btn');
-    const cancelBtn = memoEditContainer.querySelector('.memo-cancel-btn');
+    const nameChanged = newName !== exercise.name;
+    const memoChanged = newMemo !== (exercise.memo || '');
+    const colorChanged = newColor !== exercise.color;
 
-    textarea.focus();
+    closeExerciseEditSheet();
 
-    const finishMemoEdit = (shouldSave) => {
-        const newMemo = textarea.value.trim();
-        memoEditContainer.remove();
-        memoEditContainer = null;
-        exerciseMemoDisplay.style.display = '';
+    if (!nameChanged && !memoChanged && !colorChanged) return;
 
-        if (shouldSave) {
-            exercise.memo = newMemo;
-            save();
-            if (newMemo) {
-                exerciseMemoDisplay.textContent = newMemo;
-                exerciseMemoDisplay.classList.remove('hidden');
-            } else {
-                exerciseMemoDisplay.textContent = t('addMemo');
-                exerciseMemoDisplay.classList.remove('hidden');
-                exerciseMemoDisplay.classList.add('placeholder');
+    if (nameChanged) {
+        const existing = data.exercises.find(ex => ex.name === newName && ex.id !== currentExercise);
+        if (existing) {
+            const confirmed = await showConfirm(t('mergeExerciseConfirm', newName), 'warning');
+            if (confirmed) {
+                data.records.forEach(r => { if (r.exerciseId === currentExercise) r.exerciseId = existing.id; });
+                data.exercises = data.exercises.filter(ex => ex.id !== currentExercise);
+                currentExercise = existing.id;
+                detailTitle.textContent = newName;
+                if (existing.memo) {
+                    exerciseMemoDisplay.textContent = existing.memo;
+                    exerciseMemoDisplay.classList.remove('hidden', 'placeholder');
+                } else {
+                    exerciseMemoDisplay.classList.add('hidden');
+                }
+                save(); renderDetail(); updateAddSetBtnColor();
             }
-            renderMain();
+            return;
         }
-    };
+        exercise.name = newName;
+        detailTitle.textContent = newName;
+    }
 
-    saveBtn.onclick = () => finishMemoEdit(true);
-    cancelBtn.onclick = () => finishMemoEdit(false);
-    textarea.onkeydown = e => {
-        if (e.key === 'Escape') finishMemoEdit(false);
-    };
+    if (memoChanged) {
+        exercise.memo = newMemo;
+        if (newMemo) {
+            exerciseMemoDisplay.textContent = newMemo;
+            exerciseMemoDisplay.classList.remove('hidden', 'placeholder');
+        } else {
+            exerciseMemoDisplay.textContent = t('addMemo');
+            exerciseMemoDisplay.classList.remove('hidden');
+            exerciseMemoDisplay.classList.add('placeholder');
+        }
+    }
+
+    if (colorChanged) exercise.color = newColor;
+
+    save();
+    updateAddSetBtnColor();
+    renderMain();
+    currentViewMode === 'calendar' ? renderCalendar() : renderFeedView();
+};
+
+$('exerciseEditCancelBtn').onclick = closeExerciseEditSheet;
+exerciseEditSheet.addEventListener('click', e => { if (e.target === exerciseEditSheet) closeExerciseEditSheet(); });
+
+editTitleBtn.onclick = openExerciseEditSheet;
+exerciseMemoDisplay.onclick = openExerciseEditSheet;
+
+function cancelTitleEdit() {
+    closeExerciseEditSheet();
 }
-
-exerciseMemoDisplay.onclick = startEditMemo;
 
 function cancelMemoEdit() {
-    if (memoEditContainer) {
-        memoEditContainer.remove();
-        memoEditContainer = null;
-        exerciseMemoDisplay.style.display = '';
-    }
+    closeExerciseEditSheet();
 }
 
 function updateAddSetBtnColor() {

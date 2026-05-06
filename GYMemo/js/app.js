@@ -272,7 +272,9 @@ window.addEventListener('resize', updateTabBarHeight);
 const mySubpages = {
     profile: document.getElementById('myProfilePage'),
     achievement: document.getElementById('myAchievementPage'),
-    appsettings: document.getElementById('myAppSettingsPage')
+    appsettings: document.getElementById('myAppSettingsPage'),
+    routines: document.getElementById('myRoutinesPage'),
+    routinedetail: document.getElementById('myRoutineDetailPage')
 };
 
 function showMySubpage(name) {
@@ -284,6 +286,7 @@ function showMySubpage(name) {
         mySubpages[name].classList.remove('hidden');
         if (name === 'achievement') renderAchievements();
         if (name === 'profile') renderProfile();
+        if (name === 'routines' && typeof renderRoutineList === 'function') renderRoutineList();
     } else {
         hub.classList.remove('hidden');
     }
@@ -294,7 +297,7 @@ document.querySelectorAll('.my-hub-item').forEach(btn => {
     btn.onclick = () => { navigate('my/' + btn.dataset.subroute); handleRoute(); };
 });
 
-['mySubBackBtn', 'myAchBackBtn', 'mySettingsSubBackBtn'].forEach(id => {
+['mySubBackBtn', 'myAchBackBtn', 'mySettingsSubBackBtn', 'myRoutinesBackBtn'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.onclick = () => { navigate('my'); handleRoute(); };
 });

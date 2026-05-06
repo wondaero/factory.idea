@@ -127,8 +127,9 @@ function getExerciseByName(name) {
 // 데이터 초기값
 let data = { exercises: [], records: [], achievements: {}, plannedExercises: {} };
 let exerciseSortOrder = 'registered';
-let userProfile = { goal: null, level: null, frequency: null, equipment: null, gender: null, age: null, injuries: [] };
+let userProfile = { goal: null, level: null, frequency: null, equipment: null, gender: null, ageGroup: null, ageExact: null, injuries: null, notes: '' };
 let templates = [];
+let routines = []; // { id, createdAt, content, profile snapshot }
 let dataReady = false;
 let dataReadyPromise = null;
 let dataReadyResolve = null;
@@ -158,6 +159,9 @@ async function initData() {
         }
         if (stored.templates) {
             templates = stored.templates;
+        }
+        if (stored.routines) {
+            routines = stored.routines;
         }
 
         data = migrateData(stored);
@@ -218,7 +222,7 @@ function loadDummyData() {
             for (let s = 0; s < numSets; s++) {
                 const hour = 6 + Math.floor(Math.random() * 14);
                 records.push({
-                    id: `dummy_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+                    id: `dummy_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
                     datetime: `${date}T${String(hour).padStart(2, '0')}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}:00`,
                     exerciseId: exId,
                     w: 20 + Math.floor(Math.random() * 60),
@@ -243,7 +247,7 @@ function loadDummyData() {
             for (let s = 0; s < numSets; s++) {
                 const hour = 6 + Math.floor(Math.random() * 14);
                 records.push({
-                    id: `dummy_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+                    id: `dummy_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
                     datetime: `${date}T${String(hour).padStart(2, '0')}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}:00`,
                     exerciseId: exId,
                     w: 25 + Math.floor(Math.random() * 65),
@@ -268,7 +272,7 @@ function loadDummyData() {
             for (let s = 0; s < numSets; s++) {
                 const hour = 6 + Math.floor(Math.random() * 14);
                 records.push({
-                    id: `dummy_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+                    id: `dummy_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
                     datetime: `${date}T${String(hour).padStart(2, '0')}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}:00`,
                     exerciseId: exId,
                     w: 30 + Math.floor(Math.random() * 70),
@@ -285,7 +289,7 @@ function loadDummyData() {
 
 // 비동기 저장
 async function save() {
-    await writeStorage({ ...data, isPremium, exerciseSortOrder, weightUnit, userProfile, templates });
+    await writeStorage({ ...data, isPremium, exerciseSortOrder, weightUnit, userProfile, templates, routines });
 }
 
 // 무게 단위 변환 함수
@@ -369,5 +373,5 @@ function createDatetime(dateStr = null) {
 }
 
 function generateId() {
-    return `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }

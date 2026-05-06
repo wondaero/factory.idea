@@ -232,6 +232,8 @@ header h1 { font-size: 1.5rem; flex: 1; font-weight: 600; }
 .calendar-day:nth-child(7n) { border-right: none; }
 .calendar-day:active { background: #e8e8ed; }
 .calendar-day.other-month { color: #ccc; }
+.calendar-day.future { color: #ddd !important; cursor: default; }
+.calendar-day.future:active { background: none; }
 .calendar-day.today { background: #e8f4ff; color: #007aff; }
 .calendar-day.sunday { color: #ff3b30; }
 .calendar-day.saturday { color: #007aff; }
@@ -1639,25 +1641,59 @@ body.is-native .add-exercise-page {
     display: flex;
     flex-direction: column;
     gap: 0;
+    counter-reset: profile-counter;
 }
 
 /* ==================== Profile ==================== */
 .profile-group {
     padding: 14px 0;
     border-bottom: 1px solid #f0f0f0;
+    counter-increment: profile-counter;
 }
 .profile-group:last-child { border-bottom: none; }
 .profile-label {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-size: 13px;
     font-weight: 600;
     color: #1d1d1f;
     margin-bottom: 10px;
 }
+.profile-label::before {
+    content: counter(profile-counter) ".";
+    color: #aaa;
+    font-size: 13px;
+    font-weight: 500;
+    margin-right: 2px;
+}
 .profile-options {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+}
+.profile-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.profile-chip {
+    padding: 7px 14px;
+    border: 1.5px solid #e0e0e0;
+    background: #f5f5f7;
+    border-radius: 20px;
+    font-size: 14px;
+    color: #555;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+.profile-chip.active {
+    background: #007aff;
+    border-color: #007aff;
+    color: #fff;
+    font-weight: 600;
 }
 .profile-btn {
     padding: 7px 14px;
@@ -1675,6 +1711,25 @@ body.is-native .add-exercise-page {
     border-color: #007aff;
     color: #fff;
     font-weight: 600;
+}
+.profile-input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 14px;
+    background: #f9f9fb;
+    box-sizing: border-box;
+    font-family: inherit;
+    color: #1d1d1f;
+}
+.profile-input[type="number"]::-webkit-inner-spin-button,
+.profile-input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; appearance: none; }
+.profile-input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+.profile-input:focus {
+    border-color: #007aff;
+    background: #fff;
+    outline: none;
 }
 
 /* ==================== Sub Tab Bar ==================== */
@@ -2135,3 +2190,216 @@ body.is-native .add-exercise-page {
     font-family: inherit;
 }
 .profile-other-input.hidden { display: none; }
+
+.profile-textarea {
+    resize: none;
+    height: 90px;
+    line-height: 1.5;
+}
+.profile-note-count {
+    text-align: right;
+    font-size: 12px;
+    color: #bbb;
+    margin-top: 4px;
+}
+.profile-group-note { counter-increment: none !important; }
+.profile-group-note .profile-label::before { display: none; }
+
+/* ==================== AI 루틴 ==================== */
+
+/* 프로필 AI 버튼 섹션 */
+.profile-ai-section {
+    padding: 16px 16px calc(16px + var(--safe-bottom, 0px));
+    /* background: #fff; */
+    border-top: 1px solid #f0f0f0;
+}
+.profile-ai-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px;
+    background: #007aff;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: opacity 0.15s;
+}
+.profile-ai-btn:active { opacity: 0.7; }
+.profile-ai-btn:disabled { opacity: 0.5; cursor: default; }
+.profile-ai-btn svg { width: 18px; height: 18px; }
+
+/* 루틴 스피너 */
+.routine-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin-right: 6px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* 루틴 목록 */
+.routine-list-container {
+    padding: 12px 16px calc(12px + var(--safe-bottom, 0px));
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.routine-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: #999;
+    font-size: 15px;
+    line-height: 1.8;
+}
+.routine-empty-sub { font-size: 13px; color: #bbb; }
+.routine-card {
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 14px;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.routine-card:active { background: #f5f5f5; }
+.routine-card-date {
+    font-size: 12px;
+    color: #999;
+    margin-bottom: 6px;
+}
+.routine-card-preview {
+    font-size: 14px;
+    color: #333;
+    line-height: 1.5;
+}
+
+/* 루틴 삭제 버튼 */
+.routine-delete-btn {
+    margin-left: auto;
+    color: #ff3b30;
+}
+.routine-delete-btn svg { width: 22px; height: 22px; }
+
+/* 루틴 상세 */
+.routine-detail-container {
+    padding: 16px 16px calc(16px + var(--safe-bottom, 0px));
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.routine-detail-date {
+    font-size: 13px;
+    color: #999;
+}
+.routine-detail-profile {
+    background: #f8f8f8;
+    border-radius: 12px;
+    padding: 12px 14px;
+}
+.routine-detail-profile h3 {
+    font-size: 13px;
+    color: #888;
+    margin: 0 0 8px;
+    font-weight: 500;
+}
+.routine-profile-pre {
+    font-family: inherit;
+    font-size: 13px;
+    color: #555;
+    margin: 0;
+    white-space: pre-wrap;
+    line-height: 1.6;
+}
+.routine-detail-content {
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 12px;
+    padding: 14px 16px;
+}
+.routine-content-pre {
+    font-family: inherit;
+    font-size: 14px;
+    color: #222;
+    margin: 0;
+    white-space: pre-wrap;
+    line-height: 1.7;
+}
+
+/* ==================== 운동 수정 바텀시트 ==================== */
+.exercise-edit-color-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+.exercise-edit-color-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    flex-shrink: 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.exercise-edit-color-label {
+    font-size: 14px;
+    color: #888;
+}
+.exercise-edit-field {
+    margin-bottom: 14px;
+}
+.exercise-edit-label {
+    display: block;
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 6px;
+    font-weight: 500;
+}
+.exercise-edit-input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 15px;
+    font-family: inherit;
+    box-sizing: border-box;
+    background: #fafafa;
+}
+.exercise-edit-input:focus {
+    outline: none;
+    border-color: #007aff;
+    background: #fff;
+}
+.exercise-edit-textarea {
+    resize: none;
+    height: 80px;
+    line-height: 1.5;
+}
+
+/* 루틴 배지 */
+.routine-badge {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-weight: 500;
+    vertical-align: middle;
+    margin-left: 6px;
+}
+.routine-badge-records {
+    background: #e8f4ff;
+    color: #007aff;
+}
+.routine-badge-profile {
+    background: #f0f0f0;
+    color: #888;
+}

@@ -166,6 +166,13 @@
                         <span data-i18n="tabAchievement">업적</span>
                         <svg class="my-hub-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
                     </button>
+                    <button class="my-hub-item" data-subroute="routines">
+                        <svg class="my-hub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/><path d="M12 6v6l4 2"/>
+                        </svg>
+                        <span>AI 루틴</span>
+                        <svg class="my-hub-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
                     <button class="my-hub-item" data-subroute="appsettings">
                         <svg class="my-hub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -186,71 +193,106 @@
                 </header>
                 <div class="my-subpage-content">
                     <div class="profile-group">
-                        <label class="profile-label" data-i18n="profileGoal">목표</label>
-                        <div class="profile-options">
-                            <button class="profile-btn" data-field="goal" data-value="diet" data-i18n="goalDiet">다이어트</button>
-                            <button class="profile-btn" data-field="goal" data-value="muscle" data-i18n="goalMuscle">근육증가</button>
-                            <button class="profile-btn" data-field="goal" data-value="fitness" data-i18n="goalFitness">체력향상</button>
-                            <button class="profile-btn profile-btn-other" data-field="goal" data-value="other">기타</button>
+                        <label class="profile-label">목표</label>
+                        <div class="profile-chips">
+                            <button class="profile-chip" data-field="goal" data-value="다이어트">다이어트</button>
+                            <button class="profile-chip" data-field="goal" data-value="근육증가">근육증가</button>
+                            <button class="profile-chip" data-field="goal" data-value="체력향상">체력향상</button>
                         </div>
-                        <input type="text" class="profile-other-input hidden" data-field="goal" placeholder="목표를 직접 입력하세요" maxlength="50">
+                        <input type="text" class="profile-input" data-field="goal" placeholder="목표를 입력하세요" maxlength="50">
                     </div>
                     <div class="profile-group">
-                        <label class="profile-label" data-i18n="profileLevel">수준</label>
-                        <div class="profile-options">
-                            <button class="profile-btn" data-field="level" data-value="beginner" data-i18n="levelBeginner">초보</button>
-                            <button class="profile-btn" data-field="level" data-value="intermediate" data-i18n="levelIntermediate">중급</button>
-                            <button class="profile-btn" data-field="level" data-value="advanced" data-i18n="levelAdvanced">고급</button>
+                        <label class="profile-label">수준</label>
+                        <div class="profile-chips">
+                            <button class="profile-chip" data-field="level" data-value="초보">초보</button>
+                            <button class="profile-chip" data-field="level" data-value="중급">중급</button>
+                            <button class="profile-chip" data-field="level" data-value="고급">고급</button>
                         </div>
+                        <input type="text" class="profile-input" data-field="level" placeholder="운동 수준을 입력하세요" maxlength="30">
                     </div>
                     <div class="profile-group">
-                        <label class="profile-label" data-i18n="profileFrequency">주당 운동</label>
-                        <div class="profile-options">
-                            <button class="profile-btn" data-field="frequency" data-value="2-3" data-i18n="freq23">2-3일</button>
-                            <button class="profile-btn" data-field="frequency" data-value="4-5" data-i18n="freq45">4-5일</button>
-                            <button class="profile-btn" data-field="frequency" data-value="6-7" data-i18n="freq67">6-7일</button>
-                            <button class="profile-btn profile-btn-other" data-field="frequency" data-value="other">기타</button>
+                        <label class="profile-label">주당 운동</label>
+                        <div class="profile-chips">
+                            <button class="profile-chip" data-field="frequency" data-value="주 2-3회">주 2-3회</button>
+                            <button class="profile-chip" data-field="frequency" data-value="주 4-5회">주 4-5회</button>
+                            <button class="profile-chip" data-field="frequency" data-value="주 6-7회">주 6-7회</button>
                         </div>
-                        <input type="text" class="profile-other-input hidden" data-field="frequency" placeholder="예: 주 1회, 격일" maxlength="30">
+                        <input type="text" class="profile-input" data-field="frequency" placeholder="예: 주 1회, 격일" maxlength="30">
                     </div>
                     <div class="profile-group">
-                        <label class="profile-label" data-i18n="profileEquipment">장비</label>
-                        <div class="profile-options">
-                            <button class="profile-btn" data-field="equipment" data-value="gym" data-i18n="equipGym">헬스장</button>
-                            <button class="profile-btn" data-field="equipment" data-value="home" data-i18n="equipHome">홈짐</button>
-                            <button class="profile-btn" data-field="equipment" data-value="bodyweight" data-i18n="equipBodyweight">맨몸</button>
-                            <button class="profile-btn profile-btn-other" data-field="equipment" data-value="other">기타</button>
+                        <label class="profile-label">장비/환경</label>
+                        <div class="profile-chips">
+                            <button class="profile-chip" data-field="equipment" data-value="헬스장">헬스장</button>
+                            <button class="profile-chip" data-field="equipment" data-value="홈짐">홈짐</button>
+                            <button class="profile-chip" data-field="equipment" data-value="맨몸">맨몸</button>
                         </div>
-                        <input type="text" class="profile-other-input hidden" data-field="equipment" placeholder="예: 공원, 수영장" maxlength="30">
+                        <input type="text" class="profile-input" data-field="equipment" placeholder="예: 공원, 수영장" maxlength="30">
                     </div>
                     <div class="profile-group">
-                        <label class="profile-label" data-i18n="profileGender">성별</label>
-                        <div class="profile-options">
-                            <button class="profile-btn" data-field="gender" data-value="male" data-i18n="genderMale">남</button>
-                            <button class="profile-btn" data-field="gender" data-value="female" data-i18n="genderFemale">여</button>
-                        </div>
-                    </div>
-                    <div class="profile-group">
-                        <label class="profile-label" data-i18n="profileAge">나이대</label>
-                        <div class="profile-options">
-                            <button class="profile-btn" data-field="age" data-value="10s" data-i18n="age10s">10대</button>
-                            <button class="profile-btn" data-field="age" data-value="20s" data-i18n="age20s">20대</button>
-                            <button class="profile-btn" data-field="age" data-value="30s" data-i18n="age30s">30대</button>
-                            <button class="profile-btn" data-field="age" data-value="40s" data-i18n="age40s">40대</button>
-                            <button class="profile-btn" data-field="age" data-value="50s+" data-i18n="age50s">50대+</button>
+                        <label class="profile-label">성별</label>
+                        <div class="profile-chips">
+                            <button class="profile-chip" data-field="gender" data-value="남">남</button>
+                            <button class="profile-chip" data-field="gender" data-value="여">여</button>
                         </div>
                     </div>
                     <div class="profile-group">
-                        <label class="profile-label" data-i18n="profileInjuries">부상/주의</label>
-                        <div class="profile-options">
-                            <button class="profile-btn multi" data-field="injuries" data-value="none" data-i18n="injuryNone">없음</button>
-                            <button class="profile-btn multi" data-field="injuries" data-value="back" data-i18n="injuryBack">허리</button>
-                            <button class="profile-btn multi" data-field="injuries" data-value="knee" data-i18n="injuryKnee">무릎</button>
-                            <button class="profile-btn multi" data-field="injuries" data-value="shoulder" data-i18n="injuryShoulder">어깨</button>
+                        <label class="profile-label">나이</label>
+                        <div class="profile-chips">
+                            <button class="profile-chip" data-field="age" data-value="10대">10대</button>
+                            <button class="profile-chip" data-field="age" data-value="20대">20대</button>
+                            <button class="profile-chip" data-field="age" data-value="30대">30대</button>
+                            <button class="profile-chip" data-field="age" data-value="40대">40대</button>
+                            <button class="profile-chip" data-field="age" data-value="50대+">50대+</button>
                         </div>
-                        <input type="text" class="profile-other-input" data-field="injuries-other" placeholder="기타 부상/주의사항 (선택)" maxlength="50">
+                        <input type="number" class="profile-input" data-field="ageExact" placeholder="정확한 나이 (선택)" min="10" max="100" inputmode="numeric">
+                    </div>
+                    <div class="profile-group">
+                        <label class="profile-label">부상/주의</label>
+                        <div class="profile-chips">
+                            <button class="profile-chip" data-field="injuries" data-value="없음">없음</button>
+                            <button class="profile-chip" data-field="injuries" data-value="허리">허리</button>
+                            <button class="profile-chip" data-field="injuries" data-value="무릎">무릎</button>
+                            <button class="profile-chip" data-field="injuries" data-value="어깨">어깨</button>
+                        </div>
+                        <input type="text" class="profile-input" data-field="injuries" placeholder="기타 부상/주의사항" maxlength="50">
+                    </div>
+                    <div class="profile-group profile-group-note">
+                        <label class="profile-label">추가사항</label>
+                        <textarea class="profile-input profile-textarea" data-field="notes" placeholder="AI에게 전달할 추가 정보를 자유롭게 적어주세요&#10;예: 런닝머신은 무릎에 무리라 피하고 싶어요" maxlength="300"></textarea>
+                        <div class="profile-note-count"><span id="profileNotesCount">0</span>/300</div>
                     </div>
                 </div>
+                <div class="profile-ai-section">
+                    <button class="profile-ai-btn" id="generateRoutineBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                        AI 루틴 생성
+                    </button>
+                </div>
+            </div>
+
+            <!-- AI 루틴 서브페이지 -->
+            <div id="myRoutinesPage" class="my-subpage hidden">
+                <header>
+                    <button class="back-btn" id="myRoutinesBackBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                    </button>
+                    <h1>AI 루틴</h1>
+                </header>
+                <div class="routine-list-container" id="routineListContainer"></div>
+            </div>
+
+            <!-- 루틴 상세 페이지 -->
+            <div id="myRoutineDetailPage" class="my-subpage hidden">
+                <header>
+                    <button class="back-btn" id="myRoutineDetailBackBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                    </button>
+                    <h1>루틴 상세</h1>
+                    <button class="icon-btn routine-delete-btn" id="routineDeleteBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
+                </header>
+                <div class="routine-detail-container" id="routineDetailContainer"></div>
             </div>
 
             <!-- 업적 서브페이지 -->
@@ -456,6 +498,26 @@
         </div>
     </div>
 
+    <!-- 운동 수정 바텀시트 -->
+    <div class="bottom-sheet-overlay hidden" id="exerciseEditSheet">
+        <div class="bottom-sheet">
+            <div class="exercise-edit-color-row">
+                <button class="exercise-edit-color-btn" id="exerciseEditColorBtn"></button>
+                <span class="exercise-edit-color-label">색상</span>
+            </div>
+            <div class="exercise-edit-field">
+                <label class="exercise-edit-label">운동 이름</label>
+                <input type="text" class="exercise-edit-input" id="exerciseEditNameInput" maxlength="30">
+            </div>
+            <div class="exercise-edit-field">
+                <label class="exercise-edit-label">설명</label>
+                <textarea class="exercise-edit-input exercise-edit-textarea" id="exerciseEditMemoInput" maxlength="200" placeholder="운동 설명을 입력하세요"></textarea>
+            </div>
+            <button class="bottom-sheet-confirm" id="exerciseEditSaveBtn">저장</button>
+            <button class="bottom-sheet-cancel" id="exerciseEditCancelBtn">취소</button>
+        </div>
+    </div>
+
     <!-- Month Picker Modal -->
     <div class="modal-overlay" id="monthPickerModal">
         <div class="modal-content month-picker-content">
@@ -583,6 +645,7 @@
     <script src="js/achievement.js"></script>
     <script src="js/profile.js"></script>
     <script src="js/template.js"></script>
+    <script src="js/routine.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
